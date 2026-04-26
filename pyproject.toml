@@ -23,6 +23,7 @@ dev = [
     "pytest>=8.1",
     "pytest-unmagic @ git+https://github.com/kaapstorm/pytest-unmagic@nh/docs_5",
     "ruff>=0.15.12",
+    "types-openpyxl>=3.1.5.20260408",
 ]
 
 [build-system]
