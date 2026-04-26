@@ -7,10 +7,12 @@
 - `claude/specs/` — design specifications
 - `claude/plans/` — implementation plans (when written)
 
-## Design specs
+## Design specs and plans
 
-Design specifications live in `claude/specs/` with filenames of the form
-`YYYY-MM-DD_name-of-design.md`. Use the date the spec was first written.
+Design specifications live in `claude/specs/`. Implementation plans live
+in `claude/plans/`. Both use the filename convention
+`YYYY-MM-DD_name-of-document.md`. Use the date the document was first
+written.
 
 ## Python and tooling
 
