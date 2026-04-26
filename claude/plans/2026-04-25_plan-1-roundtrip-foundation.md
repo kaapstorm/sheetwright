@@ -95,9 +95,10 @@ tests/
 ## Conventions for every task
 
 - **Use `pytest-unmagic`.** All fixtures defined with `@fixture`; applied with `@use(...)` or shorthand. Never bare `pytest.fixture`. See CLAUDE.md.
+- **Format and type-check before committing.** Run `uv run ruff format <files>` and (when type annotations changed) `uv run mypy src/` before every `git commit`. The code samples below use double quotes for readability; `ruff format` will normalise them to the project's single-quote style automatically.
 - **Each task ends with a commit.** Commit message format: `<area>: <imperative summary>` (e.g. `xlsx: read multi-sheet workbooks`). No co-author trailer needed within plan execution.
 - **Run from repo root.** All commands assume `cd /srv/share/src/kaapstorm/claudesheets` (or equivalent worktree).
-- **Use `uv run`** to invoke `pytest` and the `claudesheets` CLI. Never `pip install` or `python -m pytest` directly.
+- **Use `uv run`** to invoke `pytest`, `ruff`, `mypy`, and the `claudesheets` CLI. Never `pip install` or `python -m pytest` directly.
 
 ---
 

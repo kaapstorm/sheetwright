@@ -14,8 +14,10 @@ claudesheets = "claudesheets.cli:main"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.20.2",
     "pytest>=8.1",
     "pytest-unmagic @ git+https://github.com/kaapstorm/pytest-unmagic@nh/docs_5",
+    "ruff>=0.15.12",
 ]
 
 [build-system]
@@ -27,3 +29,17 @@ packages = ["src/claudesheets"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/claudesheets"]
+strict_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = true

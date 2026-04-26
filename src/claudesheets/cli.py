@@ -3,6 +3,6 @@
 
 def main() -> int:
     raise NotImplementedError(
-        "claudesheets CLI not yet implemented. See "
-        "claude/specs/2026-04-25_claudesheets-design.md."
+        'claudesheets CLI not yet implemented. See '
+        'claude/specs/2026-04-25_claudesheets-design.md.'
     )
