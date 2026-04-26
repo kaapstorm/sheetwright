@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# uv / venvs
+.venv/
+.python-version.local
+
+# claudesheets build artifacts (per-project, but ignored at repo root too)
+build/
+.claudesheets/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
