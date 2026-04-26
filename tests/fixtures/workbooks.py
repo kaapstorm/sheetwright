@@ -66,3 +66,21 @@ def write_formatted_xlsx(path: Path) -> None:
     ws.column_dimensions['B'].width = 10
 
     wb.save(path)
+
+
+def write_validation_xlsx(path: Path) -> None:
+    from openpyxl.worksheet.datavalidation import DataValidation as XDV
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'V'
+
+    dv_list = XDV(type='list', formula1='"yes,no,maybe"', allow_blank=True)
+    dv_list.add('A1:A10')
+    ws.add_data_validation(dv_list)
+
+    dv_range = XDV(type='whole', operator='between', formula1=1, formula2=100)
+    dv_range.add('B1:B10')
+    ws.add_data_validation(dv_range)
+
+    wb.save(path)

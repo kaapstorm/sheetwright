@@ -8,9 +8,11 @@ from typing import Any, Optional
 
 import openpyxl
 from openpyxl.cell.cell import Cell as XCell
+from openpyxl.worksheet.datavalidation import DataValidation as XDV
 
 from claudesheets.model.cell import Cell
 from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
+from claudesheets.model.validation import DataValidation
 from claudesheets.model.workbook import NamedRange, Sheet, Workbook
 
 
@@ -101,6 +103,18 @@ def _cell_format(c: XCell) -> Optional[CellFormat]:
     return CellFormat(font=font, fill=fill, border=border, number_format=nf)
 
 
+def _read_validation(dv: XDV) -> DataValidation:
+    ranges = [str(r) for r in dv.sqref.ranges] if dv.sqref else []
+    return DataValidation(
+        type=str(dv.type) if dv.type else '',
+        ranges=ranges,
+        operator=str(dv.operator) if dv.operator else None,
+        formula1=dv.formula1,
+        formula2=dv.formula2,
+        allow_blank=bool(dv.allow_blank),
+    )
+
+
 def _format_id(fmt: CellFormat) -> str:
     """Stable, content-addressed id for a CellFormat."""
     h = hashlib.sha1(repr(fmt).encode('utf-8')).hexdigest()[:10]
@@ -117,6 +131,8 @@ def read_xlsx(path: Path) -> Workbook:
         for col_letter, dim in ws.column_dimensions.items():
             if dim.width is not None:
                 sheet.column_widths[col_letter] = float(dim.width)
+        for dv in ws.data_validations.dataValidation:
+            sheet.validations.append(_read_validation(dv))
         for row in ws.iter_rows():
             for c in row:
                 if not isinstance(c, XCell):

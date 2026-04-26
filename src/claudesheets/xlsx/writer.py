@@ -7,6 +7,7 @@ from typing import Literal, Optional
 
 import openpyxl
 from openpyxl.cell.cell import Cell as XCell
+from openpyxl.worksheet.datavalidation import DataValidation as XDV
 from openpyxl.styles import (
     Border as XBorder,
     Color,
@@ -89,6 +90,18 @@ def write_xlsx(wb: Workbook, path: Path) -> None:
 
         for col, width in sheet.column_widths.items():
             ws.column_dimensions[col].width = width
+
+        for v in sheet.validations:
+            xdv = XDV(
+                type=v.type,  # type: ignore[arg-type]
+                operator=v.operator,  # type: ignore[arg-type]
+                formula1=v.formula1,
+                formula2=v.formula2,
+                allow_blank=v.allow_blank,
+            )
+            for r in v.ranges:
+                xdv.add(r)
+            ws.add_data_validation(xdv)
 
         for addr, cell in sheet.cells.items():
             xc = ws[addr]
