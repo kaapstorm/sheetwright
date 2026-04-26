@@ -29,7 +29,8 @@ def read_xlsx(path: Path) -> Workbook:
                     # unsupported types (Decimal, RichText, etc.) are
                     # preserved as-is for now and narrowed in later tasks.
                     sheet.set(
-                        c.coordinate, Cell(value=c.value)  # type: ignore[arg-type]
+                        c.coordinate,
+                        Cell(value=c.value),  # type: ignore[arg-type]
                     )
         wb.sheets.append(sheet)
 
