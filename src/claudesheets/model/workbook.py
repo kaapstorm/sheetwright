@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from claudesheets.model.cell import Cell
+from claudesheets.model.format import CellFormat
 
 
 @dataclass
@@ -27,6 +28,7 @@ class Sheet:
     name: str
     cells: Dict[str, Cell] = field(default_factory=dict)
     column_widths: Dict[str, float] = field(default_factory=dict)
+    formats: Dict[str, CellFormat] = field(default_factory=dict)
     frozen_panes: Optional[str] = None  # e.g. "B2"; reserved for Plan 3
 
     def get(self, address: str) -> Cell:
