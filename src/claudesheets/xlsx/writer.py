@@ -49,9 +49,10 @@ def _fix_xlsx_timestamps(path: Path, epoch: datetime) -> None:
         epoch.second,
     )
 
-    # Read all files from the zip
+    # Read all files from the zip, preserving entry order
     with zipfile.ZipFile(path, 'r') as z:
-        files_data = {name: z.read(name) for name in z.namelist()}
+        order = z.namelist()
+        files_data = {name: z.read(name) for name in order}
 
     # Fix core.xml timestamp
     core_xml = files_data['docProps/core.xml'].decode('utf-8')
@@ -66,9 +67,9 @@ def _fix_xlsx_timestamps(path: Path, epoch: datetime) -> None:
     )
     files_data['docProps/core.xml'] = core_xml.encode('utf-8')
 
-    # Rewrite the zip with deterministic order and timestamps
+    # Rewrite the zip with deterministic timestamps, preserving order
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as z:
-        for name in sorted(files_data.keys()):
+        for name in order:
             info = zipfile.ZipInfo(name, dos_date_time)
             # Use DEFLATE compression for all files (except dirs)
             if not name.endswith('/'):
