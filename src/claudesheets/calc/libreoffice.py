@@ -60,12 +60,20 @@ class LibreOfficeEngine(CalcEngine):
                     check=False,
                 )
             except FileNotFoundError as e:
-                raise LibreOfficeError(f'{self.soffice} not on $PATH') from e
+                raise LibreOfficeError(
+                    f'{self.soffice}: not on $PATH or not executable'
+                ) from e
+            except subprocess.TimeoutExpired as e:
+                raise LibreOfficeError(
+                    f'{self.soffice} timed out after {self.timeout}s'
+                ) from e
 
             if proc.returncode != 0:
+                stderr = proc.stderr.decode('utf-8', 'replace').strip()
+                stdout = proc.stdout.decode('utf-8', 'replace').strip()
+                detail = stderr or stdout or '(no output)'
                 raise LibreOfficeError(
-                    f'soffice exited {proc.returncode}: '
-                    f'{proc.stderr.decode("utf-8", "replace").strip()}'
+                    f'soffice exited {proc.returncode}: {detail}'
                 )
 
             converted = outdir / xlsx_path.name
