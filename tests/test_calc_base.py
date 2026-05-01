@@ -21,8 +21,6 @@ def test_calc_result_shape():
 
 
 class _Recorder(CalcEngine):
-    name = 'recorder'
-
     def evaluate(self, xlsx_path: Path) -> CalcResult:
         return {'Recorded': {'A1': str(xlsx_path)}}
 

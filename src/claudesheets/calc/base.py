@@ -14,8 +14,6 @@ CalcResult = Dict[str, Dict[str, CellValue]]
 class CalcEngine(ABC):
     """Abstract calc engine: evaluate a built .xlsx and return values."""
 
-    name: str = ''
-
     @abstractmethod
     def evaluate(self, xlsx_path: Path) -> CalcResult:
         """Return calculated values keyed by sheet, then by A1 address."""
