@@ -55,8 +55,12 @@ class Model:
         sheet = self._calculated.get(sheet_name, {})
         if addr in sheet:
             return sheet[addr]
-        # Fall back to the literal value for cells the engine omitted.
-        return self._wb.sheet(sheet_name).get(addr).value
+        source_cell = self._wb.sheet(sheet_name).get(addr)
+        if source_cell.formula is not None:
+            raise RuntimeError(
+                f'calc engine omitted formula cell {sheet_name}!{addr}'
+            )
+        return source_cell.value
 
     def recalc(self) -> None:
         with tempfile.TemporaryDirectory(prefix='cshs-model-') as td:

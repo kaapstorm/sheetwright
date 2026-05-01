@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -42,7 +42,7 @@ def write_cached(cache_dir: Path, key: str, result: CalcResult) -> Path:
         json.dumps(
             {
                 'key': key,
-                'computed_at': datetime.utcnow().isoformat() + 'Z',
+                'computed_at': datetime.now(timezone.utc).isoformat(),
                 'result': result,
             },
             indent=2,

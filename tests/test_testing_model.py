@@ -1,7 +1,11 @@
 from pathlib import Path
 
+import pytest
 from unmagic import fixture, use
 
+from claudesheets.calc.base import CalcEngine, CalcResult
+from claudesheets.model.cell import Cell
+from claudesheets.model.workbook import Sheet, Workbook
 from claudesheets.testing import Model
 from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
@@ -51,3 +55,25 @@ def test_model_set_resolves_named_range():
 def test_model_get_literal_value():
     m = Model.open(project())
     assert m.get('Inputs!B2') == 1_000_000
+
+
+class _EmptyEngine(CalcEngine):
+    def evaluate(self, xlsx_path: Path) -> CalcResult:
+        return {}
+
+
+def test_model_get_raises_when_formula_cell_missing_from_result(
+    tmp_path: Path,
+):
+    wb = Workbook(name='x', sheets=[Sheet(name='S')])
+    wb.sheet('S').set('A1', Cell(formula='=1+1'))
+    m = Model(wb, _EmptyEngine())
+    with pytest.raises(RuntimeError, match='S!A1'):
+        m.get('S!A1')
+
+
+def test_model_get_returns_literal_when_no_formula(tmp_path: Path):
+    wb = Workbook(name='x', sheets=[Sheet(name='S')])
+    wb.sheet('S').set('A1', Cell(value='hello'))
+    m = Model(wb, _EmptyEngine())
+    assert m.get('S!A1') == 'hello'

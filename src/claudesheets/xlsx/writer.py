@@ -57,7 +57,7 @@ def _fix_xlsx_timestamps(path: Path, epoch: datetime) -> None:
     # Fix core.xml timestamp
     core_xml = files_data['docProps/core.xml'].decode('utf-8')
     epoch_str = epoch.isoformat() + 'Z'
-    core_xml = re.sub(
+    core_xml, n = re.subn(
         r'<dcterms:modified[^>]*>.*?</dcterms:modified>',
         (
             f'<dcterms:modified xsi:type="dcterms:W3CDTF">'
@@ -65,6 +65,11 @@ def _fix_xlsx_timestamps(path: Path, epoch: datetime) -> None:
         ),
         core_xml,
     )
+    if n != 1:
+        raise RuntimeError(
+            f'expected exactly one <dcterms:modified> in core.xml, '
+            f'found {n}; openpyxl output may have changed'
+        )
     files_data['docProps/core.xml'] = core_xml.encode('utf-8')
 
     # Rewrite the zip with deterministic timestamps, preserving order
