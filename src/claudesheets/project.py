@@ -44,6 +44,10 @@ class Project:
         return self.root / '.claudesheets'
 
     @property
+    def calc_cache_dir(self) -> Path:
+        return self.cache_dir / 'calc'
+
+    @property
     def imports_dir(self) -> Path:
         return self.root / 'imports'
 
