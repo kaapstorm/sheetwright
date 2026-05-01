@@ -13,7 +13,10 @@ for the design.
 
 ## Status
 
-Pre-alpha. The design is settled; implementation has not started.
+Plan 1 complete: Tier 1 round-trip foundation. `init`, `import`, `build`
+work end-to-end for values, formulas, named ranges, basic formatting,
+number formats, and data validation. Calc engine, tests, snapshot,
+diff, and the escape-hatch import flow are coming in Plans 2–4.
 
 ## Quick reference
 
