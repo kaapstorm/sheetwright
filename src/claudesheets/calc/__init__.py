@@ -11,9 +11,7 @@ from claudesheets.calc.base import CalcEngine, CalcResult
 
 def get_calc_engine(name: str) -> CalcEngine:
     if name == 'libreoffice':
-        from claudesheets.calc.libreoffice import (  # type: ignore[import-untyped]
-            LibreOfficeEngine,
-        )
+        from claudesheets.calc.libreoffice import LibreOfficeEngine
 
         return LibreOfficeEngine()
     raise ValueError(f'unknown calc engine: {name!r}')
