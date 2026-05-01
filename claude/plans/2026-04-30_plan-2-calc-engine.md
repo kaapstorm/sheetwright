@@ -10,6 +10,9 @@ implementation, expose a `claudesheets.testing.Model` API for pytest
 tests, and ship the `recalc`, `test`, and `snapshot` commands.
 
 **Architecture:**
+- The `xlsx` writer is made deterministic by pinning
+  `core_properties.created`/`modified` so the same source produces
+  byte-identical output. This makes the calc cache key meaningful.
 - A `CalcEngine` ABC defines `evaluate(xlsx_path) -> dict[sheet, dict[addr, value]]`.
 - `LibreOfficeEngine` implements it via `soffice --headless --calc
   --convert-to xlsx` to force a recalc, then reads cached values back
@@ -17,14 +20,20 @@ tests, and ship the `recalc`, `test`, and `snapshot` commands.
 - A content-addressed calc cache (`.claudesheets/calc/<sha256>.json`)
   avoids re-running the engine when the built xlsx hasn't changed.
 - `claudesheets.testing.Model` wraps a `Workbook` + `CalcEngine` and
-  gives tests a `set/get/recalc` surface.
+  gives user tests a `Model.set/get/recalc` surface.
 - `recalc` builds the xlsx, runs the engine, writes the cache.
-- `test` shells out to `pytest` in `<project>/tests/`.
-- `snapshot` reads the cache (running `recalc` first if missing) and
+- `test` invokes [testsweet](https://github.com/kaapstorm/testsweet)
+  in-process against `<project>/tests/`. No subprocess, no
+  pytest-config dependency.
+- `snapshot` reads the cache (running `recalc` first if missing),
+  filters the result down to formula cells only (the spec's
+  "calculated outputs"), normalizes datetimes to ISO strings, and
   diffs/updates `tests/snapshots/<workbook>.json`.
 
 **Tech stack:** Python 3.11, openpyxl, click, subprocess, hashlib,
-LibreOffice (`soffice` on `$PATH`), pytest, pytest-unmagic.
+LibreOffice (`soffice` on `$PATH`), testsweet (runtime dep, used by
+`claudesheets test`), pytest + pytest-unmagic (dev deps, only for
+claudesheets's own internal tests).
 
 ---
 
@@ -40,8 +49,10 @@ src/claudesheets/calc/
 └── cache.py               # hash + read/write JSON cache
 
 src/claudesheets/testing/
-├── __init__.py            # public API: Model, parse_address
-└── model.py               # Model class
+├── __init__.py            # public API: Model, parse_address, require_libreoffice
+├── addresses.py           # parse_address helper
+├── model.py               # Model class
+└── runtime.py             # require_libreoffice() helper for user tests
 
 src/claudesheets/commands/
 ├── recalc_cmd.py          # implementation of `recalc`
@@ -51,8 +62,11 @@ src/claudesheets/commands/
 src/claudesheets/snapshot.py  # snapshot dump/load/diff helpers
 
 tests/
+├── fixtures/
+│   └── libreoffice.py         # internal-only `requires_libreoffice` pytest fixture
 ├── test_calc_libreoffice.py   # gated on `soffice` being available
 ├── test_calc_cache.py
+├── test_xlsx_determinism.py   # `build` produces byte-identical xlsx
 ├── test_testing_model.py
 ├── test_recalc_cmd.py
 ├── test_test_cmd.py
@@ -68,8 +82,9 @@ Modified files:
   `snapshots_dir` properties
 - `src/claudesheets/commands/init_cmd.py` — scaffold `tests/` directory
   and a placeholder `tests/__init__.py`
-- `pyproject.toml` — none expected (pytest already on dev deps; runtime
-  pytest dependency added in Task 1 if we decide to ship it)
+- `src/claudesheets/xlsx/writer.py` — pin `core_properties` for
+  deterministic builds (Task 3)
+- `pyproject.toml` — add `testsweet` as a runtime dependency (Task 0)
 - `README.md` — Plan 2 status + brief calc-engine docs
 
 ## Conventions for every task
@@ -86,13 +101,24 @@ Modified files:
 
 ---
 
-## Task 0: Scaffold the new packages
+## Task 0: Scaffold packages and add the testsweet runtime dependency
 
 **Files:**
 - Create: `src/claudesheets/calc/__init__.py`
 - Create: `src/claudesheets/testing/__init__.py`
+- Modify: `pyproject.toml` (via `uv add testsweet`)
 
-- [ ] **Step 1: Create the empty packages**
+- [ ] **Step 1: Add testsweet as a runtime dependency**
+
+```bash
+uv add 'testsweet>=0.1.4'
+```
+
+This must be a runtime dep (not dev-only) because `claudesheets test`
+imports `testsweet.__main__:main` to drive user-project tests
+in-process.
+
+- [ ] **Step 2: Create the empty packages**
 
 `src/claudesheets/calc/__init__.py`:
 
@@ -107,20 +133,22 @@ values for every cell. The default engine is LibreOffice headless.
 `src/claudesheets/testing/__init__.py`:
 
 ```python
-"""Test-time helpers exposed to user pytest tests."""
+"""Test-time helpers exposed to user testsweet tests."""
 ```
 
-- [ ] **Step 2: Verify**
+- [ ] **Step 3: Verify**
 
 ```bash
-uv run python -c "import claudesheets.calc, claudesheets.testing"
+uv run python -c "import claudesheets.calc, claudesheets.testing, testsweet"
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add src/claudesheets/calc/__init__.py src/claudesheets/testing/__init__.py
-git commit -m "calc: scaffold calc + testing packages"
+git add pyproject.toml uv.lock \
+        src/claudesheets/calc/__init__.py \
+        src/claudesheets/testing/__init__.py
+git commit -m "calc: scaffold calc + testing packages, add testsweet dep"
 ```
 
 ---
@@ -254,21 +282,28 @@ git commit -m "calc: add CalcEngine ABC and registry"
 
 **Files:**
 - Create: `src/claudesheets/calc/libreoffice.py`
-- Create: `src/claudesheets/testing/fixtures.py`
+- Create: `tests/fixtures/libreoffice.py`
 - Create: `tests/test_calc_libreoffice.py`
 
 The engine recalculates by re-saving the workbook with LibreOffice,
 which forces formula evaluation, then reads `data_only=True` to
 extract calculated values.
 
-- [ ] **Step 1: Write the shared `requires_libreoffice` fixture**
+The `requires_libreoffice` skip fixture lives under `tests/fixtures/`
+because it's only useful to claudesheets's *internal* pytest suite.
+User-facing tests run under testsweet (see Task 8) and use a
+different mechanism — the public `claudesheets.testing.runtime`
+helpers.
 
-`src/claudesheets/testing/fixtures.py`:
+- [ ] **Step 1: Write the internal-only `requires_libreoffice` fixture**
+
+`tests/fixtures/libreoffice.py`:
 
 ```python
-"""Shared pytest-unmagic fixtures for claudesheets tests.
+"""Internal-only pytest fixture: skip when LibreOffice is missing.
 
-Living under `claudesheets.testing` so user projects can reuse them.
+Lives under tests/ (not the public package) because it depends on
+pytest, while the user-facing test framework is testsweet.
 """
 
 from __future__ import annotations
@@ -294,10 +329,11 @@ def requires_libreoffice():
 ```python
 from pathlib import Path
 
+import pytest
 from unmagic import use
 
-from claudesheets.calc.libreoffice import LibreOfficeEngine
-from claudesheets.testing.fixtures import requires_libreoffice
+from claudesheets.calc.libreoffice import LibreOfficeEngine, LibreOfficeError
+from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -320,6 +356,15 @@ def test_libreoffice_engine_propagates_string_values(tmp_path: Path):
     write_simple_xlsx(src)
     out = LibreOfficeEngine().evaluate(src)
     assert out['Inputs']['A1'] == 'growth_rate'
+
+
+def test_libreoffice_engine_raises_when_binary_missing(tmp_path: Path):
+    # No need for soffice on $PATH — we point at a path that doesn't exist.
+    src = tmp_path / 'fake.xlsx'
+    src.write_bytes(b'not really an xlsx')
+    eng = LibreOfficeEngine(soffice='/no/such/soffice/binary')
+    with pytest.raises(LibreOfficeError, match='not on'):
+        eng.evaluate(src)
 ```
 
 - [ ] **Step 3: Run; confirm failures**
@@ -450,14 +495,114 @@ uv run mypy src/
 
 ```bash
 git add src/claudesheets/calc/libreoffice.py \
-        src/claudesheets/testing/fixtures.py \
+        tests/fixtures/libreoffice.py \
         tests/test_calc_libreoffice.py
 git commit -m "calc: LibreOffice headless engine"
 ```
 
 ---
 
-## Task 3: Calc cache
+## Task 3: Deterministic xlsx writes
+
+**Files:**
+- Modify: `src/claudesheets/xlsx/writer.py`
+- Create: `tests/test_xlsx_determinism.py`
+
+`openpyxl` writes `core_properties.created` and `.modified`
+timestamps to the current wall-clock time on every save, which means
+the same source produces different xlsx bytes on consecutive builds.
+The calc cache (Task 4) keys on the SHA-256 of the xlsx, so without
+this fix it never hits in practice. Pinning the timestamps to a fixed
+epoch makes builds reproducible — useful both for the cache and for
+diffing `imports/*.xlsx` later.
+
+- [ ] **Step 1: Write the failing test**
+
+`tests/test_xlsx_determinism.py`:
+
+```python
+import hashlib
+import time
+from pathlib import Path
+
+from unmagic import use
+
+from claudesheets.xlsx.writer import write_xlsx
+from tests.fixtures.workbooks import write_simple_xlsx
+
+
+def _sha256(p: Path) -> str:
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def test_two_builds_of_same_workbook_are_byte_identical(tmp_path: Path):
+    from claudesheets.xlsx.reader import read_xlsx
+
+    src = tmp_path / 'src.xlsx'
+    write_simple_xlsx(src)
+    wb = read_xlsx(src)
+
+    a = tmp_path / 'a.xlsx'
+    b = tmp_path / 'b.xlsx'
+    write_xlsx(wb, a)
+    time.sleep(1.1)  # ensure wall-clock would differ
+    write_xlsx(wb, b)
+
+    assert _sha256(a) == _sha256(b), (
+        'xlsx writer is not deterministic: same Workbook produced '
+        'different bytes 1s apart'
+    )
+```
+
+- [ ] **Step 2: Run; confirm failure**
+
+```bash
+uv run pytest tests/test_xlsx_determinism.py -v
+```
+
+Expected: failure (the existing writer embeds wall-clock timestamps).
+
+- [ ] **Step 3: Pin timestamps in the writer**
+
+In `src/claudesheets/xlsx/writer.py`, the openpyxl `Workbook` is the
+local variable `out` and the save call is `out.save(path)` near the
+end of the function. Add a module-level epoch and pin the properties
+just before the save:
+
+```python
+# Near the top of the module, with other imports:
+from datetime import datetime
+
+# Module-level constant:
+_DETERMINISTIC_EPOCH = datetime(2000, 1, 1)
+
+# Inside write_xlsx, immediately before `out.save(path)`:
+    out.properties.created = _DETERMINISTIC_EPOCH
+    out.properties.modified = _DETERMINISTIC_EPOCH
+    out.save(path)
+```
+
+Why a module-level constant: keeps the value in one place if a future
+change wants to bump it (or expose it for debugging).
+
+- [ ] **Step 4: Run; confirm pass**
+
+```bash
+uv run pytest tests/test_xlsx_determinism.py -v
+uv run pytest tests/test_xlsx_roundtrip.py -v   # regression check
+uv run mypy src/
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/claudesheets/xlsx/writer.py tests/test_xlsx_determinism.py
+git commit -m "xlsx: deterministic builds (pin core_properties)"
+```
+
+---
+
+## Task 4: Calc cache
 
 **Files:**
 - Create: `src/claudesheets/calc/cache.py`
@@ -604,7 +749,7 @@ git commit -m "calc: content-addressed calc cache"
 
 ---
 
-## Task 4: `claudesheets recalc` command
+## Task 5: `claudesheets recalc` command
 
 **Files:**
 - Create: `src/claudesheets/commands/recalc_cmd.py`
@@ -647,7 +792,7 @@ from click.testing import CliRunner
 from unmagic import fixture, use
 
 from claudesheets.cli import main
-from claudesheets.testing.fixtures import requires_libreoffice
+from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -685,16 +830,20 @@ def test_recalc_writes_cache_entry():
 
 @use(imported, requires_libreoffice)
 def test_recalc_is_idempotent_uses_cache():
+    from claudesheets.commands.recalc_cmd import CACHE_HIT_MESSAGE
+
     p = imported()
     runner = CliRunner()
     runner.invoke(main, ['recalc', '--project', str(p)])
     out = runner.invoke(main, ['recalc', '--project', str(p)])
     assert out.exit_code == 0
-    assert 'cache hit' in out.output.lower()
+    assert CACHE_HIT_MESSAGE in out.output
 
 
 @use(imported, requires_libreoffice)
 def test_recalc_force_rebuilds_cache():
+    from claudesheets.commands.recalc_cmd import CACHE_HIT_MESSAGE
+
     p = imported()
     runner = CliRunner()
     runner.invoke(main, ['recalc', '--project', str(p)])
@@ -702,7 +851,7 @@ def test_recalc_force_rebuilds_cache():
         main, ['recalc', '--project', str(p), '--force']
     )
     assert out.exit_code == 0
-    assert 'cache hit' not in out.output.lower()
+    assert CACHE_HIT_MESSAGE not in out.output
 ```
 
 - [ ] **Step 3: Run; confirm failures**
@@ -731,6 +880,9 @@ from claudesheets.exceptions import ProjectError
 from claudesheets.project import Project
 
 
+CACHE_HIT_MESSAGE = 'cache hit'
+
+
 def run(*, project_path: str, force: bool) -> None:
     try:
         project = Project.open(project_path)
@@ -748,7 +900,7 @@ def run(*, project_path: str, force: bool) -> None:
     if not force:
         cached = read_cached(project.calc_cache_dir, key)
         if cached is not None:
-            click.echo(f'cache hit: {key[:12]}')
+            click.echo(f'{CACHE_HIT_MESSAGE}: {key[:12]}')
             return
 
     engine = get_calc_engine(cfg.calc_engine)
@@ -774,7 +926,7 @@ git commit -m "recalc: run calc engine and cache values"
 
 ---
 
-## Task 5: Address parsing helpers
+## Task 6: Address parsing helpers
 
 **Files:**
 - Create: `src/claudesheets/testing/addresses.py`
@@ -827,6 +979,24 @@ def test_parse_strips_dollar_signs():
 def test_parse_quoted_sheet_name():
     wb = Workbook(name='x', sheets=[Sheet(name='My Sheet')])
     assert parse_address(wb, "'My Sheet'!A1") == ('My Sheet', 'A1')
+
+
+def test_parse_sheet_scoped_named_range_resolves():
+    wb = Workbook(name='x', sheets=[Sheet(name='Inputs')])
+    wb.named_ranges.append(
+        NamedRange(
+            name='local_rate',
+            ref='Inputs!$B$5',
+            scope='sheet',
+            sheet='Inputs',
+        )
+    )
+    # Sheet-scoped names resolve identically to workbook-scoped names
+    # for our purposes: parse_address looks up by name and follows the
+    # `ref`. Disambiguation between two sheet-scoped names with the
+    # same string is out of scope for Plan 2 (no real workbook does
+    # that).
+    assert parse_address(wb, 'local_rate') == ('Inputs', 'B5')
 ```
 
 - [ ] **Step 2: Run; confirm failures**
@@ -893,7 +1063,7 @@ git commit -m "testing: parse Sheet!A1 and named-range addresses"
 
 ---
 
-## Task 6: `claudesheets.testing.Model`
+## Task 7: `claudesheets.testing.Model`
 
 **Files:**
 - Create: `src/claudesheets/testing/model.py`
@@ -910,7 +1080,7 @@ from pathlib import Path
 from unmagic import fixture, use
 
 from claudesheets.testing import Model
-from claudesheets.testing.fixtures import requires_libreoffice
+from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -1067,14 +1237,23 @@ git commit -m "testing: Model.set/get/recalc over a calc engine"
 
 ---
 
-## Task 7: `claudesheets test` command
+## Task 8: `claudesheets test` command (testsweet, in-process)
 
 **Files:**
 - Create: `src/claudesheets/commands/test_cmd.py`
 - Modify: `src/claudesheets/cli.py`
 - Modify: `src/claudesheets/project.py` (add `tests_dir`)
 - Modify: `src/claudesheets/commands/init_cmd.py` (scaffold `tests/`)
+- Modify: `tests/test_init.py` (assert tests/ scaffolded)
 - Create: `tests/test_test_cmd.py`
+
+User-project tests run under [testsweet](https://github.com/kaapstorm/testsweet),
+not pytest. Tests are decorated with `@test`; the runner is invoked
+**in-process** via `testsweet.__main__.main(argv) -> int`. This
+sidesteps the entire `sys.executable`/subprocess discovery problem
+because tests execute in the same Python that runs the CLI — the
+user simply needs to install claudesheets into their project venv
+(documented in Task 12).
 
 - [ ] **Step 1: Add `tests_dir` to `Project`**
 
@@ -1096,8 +1275,8 @@ In `src/claudesheets/commands/init_cmd.py`, after the existing
     (project / 'tests' / '__init__.py').write_text('')
 ```
 
-Then extend `tests/test_init.py::test_init_creates_project_skeleton`
-to also assert:
+Extend `tests/test_init.py::test_init_creates_project_skeleton` to
+also assert:
 
 ```python
     assert (project / 'tests').is_dir()
@@ -1106,7 +1285,7 @@ to also assert:
 
 - [ ] **Step 3: Wire CLI**
 
-In `src/claudesheets/cli.py`, add:
+In `src/claudesheets/cli.py`:
 
 ```python
 @main.command(
@@ -1120,12 +1299,12 @@ In `src/claudesheets/cli.py`, add:
     default='.',
     help='Path to the claudesheets project.',
 )
-@click.argument('pytest_args', nargs=-1, type=click.UNPROCESSED)
-def test_cmd(project_path: str, pytest_args: tuple[str, ...]) -> None:
-    """Run the project's pytest tests."""
+@click.argument('targets', nargs=-1, type=click.UNPROCESSED)
+def test_cmd(project_path: str, targets: tuple[str, ...]) -> None:
+    """Run the project's testsweet tests."""
     from claudesheets.commands.test_cmd import run
 
-    run(project_path=project_path, pytest_args=list(pytest_args))
+    run(project_path=project_path, targets=list(targets))
 ```
 
 - [ ] **Step 4: Write the failing test**
@@ -1139,6 +1318,25 @@ from click.testing import CliRunner
 from unmagic import fixture, use
 
 from claudesheets.cli import main
+
+
+_PASS_TEST = """\
+from testsweet import test
+
+
+@test
+def passes():
+    assert 1 + 1 == 2
+"""
+
+_FAIL_TEST = """\
+from testsweet import test
+
+
+@test
+def fails():
+    assert False
+"""
 
 
 @fixture
@@ -1155,44 +1353,59 @@ def project_with_tests(tmp_path: Path):
     (p / 'data').mkdir()
     (p / 'tests').mkdir()
     (p / 'tests' / '__init__.py').write_text('')
-    (p / 'tests' / 'test_simple.py').write_text(
-        'def test_passes():\n    assert 1 + 1 == 2\n'
-    )
+    (p / 'tests' / 'test_simple.py').write_text(_PASS_TEST)
     yield p
 
 
 @use(project_with_tests)
-def test_test_command_runs_pytest():
+def test_test_command_runs_testsweet():
     p = project_with_tests()
     runner = CliRunner()
     r = runner.invoke(main, ['test', '--project', str(p)])
     assert r.exit_code == 0, r.output
-    assert 'test_passes' in r.output or 'passed' in r.output
+    assert 'ok' in r.output
+    assert 'passes' in r.output
 
 
 @use(project_with_tests)
-def test_test_command_propagates_pytest_failure():
+def test_test_command_propagates_failure_exit_code():
     p = project_with_tests()
-    (p / 'tests' / 'test_fail.py').write_text(
-        'def test_fails():\n    assert False\n'
-    )
+    (p / 'tests' / 'test_fail.py').write_text(_FAIL_TEST)
     runner = CliRunner()
     r = runner.invoke(main, ['test', '--project', str(p)])
     assert r.exit_code != 0
+    assert 'FAIL' in r.output
 
 
 @use(project_with_tests)
-def test_test_command_passes_through_pytest_args():
+def test_test_command_supports_target_selection():
     p = project_with_tests()
-    (p / 'tests' / 'test_other.py').write_text(
-        'def test_other():\n    assert False\n'
-    )
+    (p / 'tests' / 'test_other.py').write_text(_FAIL_TEST)
     runner = CliRunner()
+    # Pass a specific target so we only run the passing test.
     r = runner.invoke(
         main,
-        ['test', '--project', str(p), '-k', 'passes'],
+        ['test', '--project', str(p), 'tests/test_simple.py'],
     )
     assert r.exit_code == 0, r.output
+
+
+@use(project_with_tests)
+def test_test_command_errors_when_tests_dir_missing(tmp_path: Path):
+    p = tmp_path / 'no-tests'
+    p.mkdir()
+    (p / 'claudesheets.toml').write_text(
+        '[project]\nname = "x"\n[build]\ncalc_engine = "libreoffice"\n'
+    )
+    (p / 'workbook.toml').write_text(
+        '[workbook]\nname = "x"\nsheets = []\n'
+    )
+    (p / 'sheets').mkdir()
+    (p / 'data').mkdir()
+    runner = CliRunner()
+    r = runner.invoke(main, ['test', '--project', str(p)])
+    assert r.exit_code != 0
+    assert 'tests/' in r.output or 'tests' in r.output.lower()
 ```
 
 - [ ] **Step 5: Run; confirm failures**
@@ -1202,12 +1415,17 @@ def test_test_command_passes_through_pytest_args():
 `src/claudesheets/commands/test_cmd.py`:
 
 ```python
-"""Implementation of `claudesheets test`."""
+"""Implementation of `claudesheets test` (testsweet, in-process).
+
+We invoke testsweet's `main(argv) -> int` programmatically. testsweet
+saves and restores `sys.path` itself; we additionally save/restore
+`os.getcwd()` because testsweet reads `[tool.testsweet.discovery]`
+config from the cwd's `pyproject.toml`.
+"""
 
 from __future__ import annotations
 
-import subprocess
-import sys
+import os
 from typing import Sequence
 
 import click
@@ -1216,7 +1434,7 @@ from claudesheets.exceptions import ProjectError
 from claudesheets.project import Project
 
 
-def run(*, project_path: str, pytest_args: Sequence[str]) -> None:
+def run(*, project_path: str, targets: Sequence[str]) -> None:
     try:
         project = Project.open(project_path)
     except ProjectError as e:
@@ -1227,11 +1445,18 @@ def run(*, project_path: str, pytest_args: Sequence[str]) -> None:
             f'no tests/ directory in {project.root}'
         )
 
-    cmd = [sys.executable, '-m', 'pytest', str(project.tests_dir),
-           *pytest_args]
-    proc = subprocess.run(cmd, cwd=project.root)
-    if proc.returncode != 0:
-        raise click.exceptions.Exit(proc.returncode)
+    from testsweet.__main__ import main as testsweet_main
+
+    argv = list(targets) if targets else [str(project.tests_dir)]
+    prev_cwd = os.getcwd()
+    try:
+        os.chdir(project.root)
+        rc = testsweet_main(argv)
+    finally:
+        os.chdir(prev_cwd)
+
+    if rc != 0:
+        raise click.exceptions.Exit(rc)
 ```
 
 - [ ] **Step 7: Run; confirm pass**
@@ -1245,13 +1470,13 @@ uv run pytest tests/test_test_cmd.py -v
 ```bash
 git add src/claudesheets/commands/test_cmd.py src/claudesheets/cli.py \
         src/claudesheets/project.py src/claudesheets/commands/init_cmd.py \
-        tests/test_test_cmd.py
-git commit -m "test: shell out to pytest for project tests"
+        tests/test_test_cmd.py tests/test_init.py
+git commit -m "test: run user testsweet tests in-process"
 ```
 
 ---
 
-## Task 8: Snapshot dump/load/diff helpers
+## Task 9: Snapshot dump/load/diff helpers
 
 **Files:**
 - Create: `src/claudesheets/snapshot.py`
@@ -1266,11 +1491,24 @@ git commit -m "test: shell out to pytest for project tests"
         return self.tests_dir / 'snapshots'
 ```
 
+Snapshots include **only formula cells** — the spec's "calculated
+outputs". Literal inputs are excluded so changing an input doesn't
+generate noise at the input cell itself; the diff highlights only
+its propagation downstream.
+
+`datetime` cell values are normalized to ISO-8601 strings before the
+in-memory `Snapshot` is constructed, so JSON write/read is lossless
+for equality purposes.
+
 - [ ] **Step 2: Write the failing test**
 
 `tests/test_snapshot.py`:
 
 ```python
+from datetime import datetime
+
+from claudesheets.model.cell import Cell
+from claudesheets.model.workbook import Sheet, Workbook
 from claudesheets.snapshot import (
     Snapshot,
     diff_snapshots,
@@ -1278,16 +1516,34 @@ from claudesheets.snapshot import (
 )
 
 
-def test_snapshot_from_calc_result():
-    cr = {'S1': {'A1': 1, 'B2': 'x'}, 'S2': {'C3': 3.5}}
-    snap = snapshot_from_calc_result(cr)
-    assert snap.values['S1']['A1'] == 1
-    assert snap.values['S2']['C3'] == 3.5
+def _wb_with_formulas(formula_addrs):
+    """A workbook where the named addresses are formula cells."""
+    sheets_by_name = {}
+    for sheet_name, addr in formula_addrs:
+        s = sheets_by_name.setdefault(sheet_name, Sheet(name=sheet_name))
+        s.set(addr, Cell(formula='=1+1'))
+    wb = Workbook(name='x', sheets=list(sheets_by_name.values()))
+    return wb
+
+
+def test_snapshot_includes_only_formula_cells():
+    # Source: A1 is literal, B1 is a formula. CalcResult has both.
+    wb = _wb_with_formulas([('S1', 'B1')])
+    cr = {'S1': {'A1': 'literal', 'B1': 42}}
+    snap = snapshot_from_calc_result(cr, wb)
+    assert snap.values == {'S1': {'B1': 42}}
+
+
+def test_snapshot_normalizes_datetime_to_iso_string():
+    wb = _wb_with_formulas([('S1', 'A1')])
+    cr = {'S1': {'A1': datetime(2024, 3, 15, 12, 0, 0)}}
+    snap = snapshot_from_calc_result(cr, wb)
+    assert snap.values['S1']['A1'] == '2024-03-15T12:00:00'
 
 
 def test_snapshot_round_trips_json(tmp_path):
-    cr = {'S1': {'A1': 1}}
-    snap = snapshot_from_calc_result(cr)
+    wb = _wb_with_formulas([('S1', 'A1')])
+    snap = snapshot_from_calc_result({'S1': {'A1': 1}}, wb)
     p = tmp_path / 'snap.json'
     snap.write(p)
     loaded = Snapshot.read(p)
@@ -1295,22 +1551,26 @@ def test_snapshot_round_trips_json(tmp_path):
 
 
 def test_diff_detects_changed_value():
-    a = snapshot_from_calc_result({'S': {'A1': 1}})
-    b = snapshot_from_calc_result({'S': {'A1': 2}})
+    wb = _wb_with_formulas([('S', 'A1')])
+    a = snapshot_from_calc_result({'S': {'A1': 1}}, wb)
+    b = snapshot_from_calc_result({'S': {'A1': 2}}, wb)
     diffs = diff_snapshots(a, b)
     assert diffs == [('S', 'A1', 1, 2)]
 
 
 def test_diff_detects_added_and_removed():
-    a = snapshot_from_calc_result({'S': {'A1': 1}})
-    b = snapshot_from_calc_result({'S': {'A1': 1, 'B1': 2}})
+    wb_a = _wb_with_formulas([('S', 'A1')])
+    wb_b = _wb_with_formulas([('S', 'A1'), ('S', 'B1')])
+    a = snapshot_from_calc_result({'S': {'A1': 1}}, wb_a)
+    b = snapshot_from_calc_result({'S': {'A1': 1, 'B1': 2}}, wb_b)
     diffs = diff_snapshots(a, b)
     assert ('S', 'B1', None, 2) in diffs
 
 
 def test_no_diff_when_equal():
-    a = snapshot_from_calc_result({'S': {'A1': 1}})
-    b = snapshot_from_calc_result({'S': {'A1': 1}})
+    wb = _wb_with_formulas([('S', 'A1')])
+    a = snapshot_from_calc_result({'S': {'A1': 1}}, wb)
+    b = snapshot_from_calc_result({'S': {'A1': 1}}, wb)
     assert diff_snapshots(a, b) == []
 ```
 
@@ -1321,17 +1581,26 @@ def test_no_diff_when_equal():
 `src/claudesheets/snapshot.py`:
 
 ```python
-"""Golden-file snapshots of calculated workbook values."""
+"""Golden-file snapshots of calculated workbook values.
+
+A `Snapshot` captures the calculated value of every formula cell in
+a workbook. Literal-input cells are intentionally excluded.
+
+Datetime values are normalized to ISO-8601 strings before snapshot
+construction so JSON round-trips preserve equality.
+"""
 
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 from claudesheets.calc.base import CalcResult
 from claudesheets.model.cell import CellValue
+from claudesheets.model.workbook import Workbook
 
 
 @dataclass(frozen=True)
@@ -1349,10 +1618,38 @@ class Snapshot:
         return cls(values=json.loads(path.read_text()))
 
 
-def snapshot_from_calc_result(result: CalcResult) -> Snapshot:
-    return Snapshot(
-        values={s: dict(cells) for s, cells in result.items()}
-    )
+def snapshot_from_calc_result(
+    result: CalcResult, workbook: Workbook
+) -> Snapshot:
+    """Build a snapshot from a CalcResult, keeping only formula cells.
+
+    `workbook` is consulted to determine which cells in the result
+    were formulas in the source. Literal inputs are dropped.
+    """
+    formulas: Dict[str, set[str]] = {}
+    for sheet in workbook.sheets:
+        formulas[sheet.name] = {
+            addr for addr, cell in sheet.cells.items()
+            if cell.formula is not None
+        }
+
+    values: Dict[str, Dict[str, CellValue]] = {}
+    for sheet_name, cells in result.items():
+        keep = formulas.get(sheet_name, set())
+        sheet_out: Dict[str, CellValue] = {}
+        for addr, value in cells.items():
+            if addr not in keep:
+                continue
+            sheet_out[addr] = _normalize(value)
+        if sheet_out:
+            values[sheet_name] = sheet_out
+    return Snapshot(values=values)
+
+
+def _normalize(value: CellValue) -> CellValue:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
 
 
 Diff = Tuple[str, str, CellValue, CellValue]
@@ -1366,7 +1663,9 @@ def diff_snapshots(a: Snapshot, b: Snapshot) -> List[Diff]:
     diffs: List[Diff] = []
     sheets = sorted(set(a.values) | set(b.values))
     for s in sheets:
-        addrs = sorted(set(a.values.get(s, {})) | set(b.values.get(s, {})))
+        addrs = sorted(
+            set(a.values.get(s, {})) | set(b.values.get(s, {}))
+        )
         for addr in addrs:
             va = a.values.get(s, {}).get(addr)
             vb = b.values.get(s, {}).get(addr)
@@ -1387,7 +1686,7 @@ git commit -m "snapshot: dump/load/diff calculated workbook values"
 
 ---
 
-## Task 9: `claudesheets snapshot` command
+## Task 10: `claudesheets snapshot` command
 
 **Files:**
 - Create: `src/claudesheets/commands/snapshot_cmd.py`
@@ -1433,7 +1732,7 @@ from click.testing import CliRunner
 from unmagic import fixture, use
 
 from claudesheets.cli import main
-from claudesheets.testing.fixtures import requires_libreoffice
+from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -1480,14 +1779,19 @@ def test_snapshot_clean_when_unchanged():
 
 @use(built, requires_libreoffice)
 def test_snapshot_reports_diff_and_exits_nonzero():
+    import json
+
     p = built()
     runner = CliRunner()
     runner.invoke(main, ['snapshot', '--project', str(p)])  # init
     snap = p / 'tests' / 'snapshots' / 'in.json'
-    snap.write_text(snap.read_text().replace('1040000', '999999'))
+    data = json.loads(snap.read_text())
+    # Mutate the formula cell Outputs!B1 so the next snapshot diffs.
+    data['Outputs']['B1'] = 999_999
+    snap.write_text(json.dumps(data, indent=2, sort_keys=True))
     r = runner.invoke(main, ['snapshot', '--project', str(p)])
     assert r.exit_code != 0
-    assert '999999' in r.output or 'differ' in r.output.lower()
+    assert '999999' in r.output or 'Outputs!B1' in r.output
 
 
 @use(built, requires_libreoffice)
@@ -1532,6 +1836,7 @@ from claudesheets.snapshot import (
     diff_snapshots,
     snapshot_from_calc_result,
 )
+from claudesheets.source.reader import read_source
 
 
 def run(*, project_path: str, update: bool) -> None:
@@ -1553,7 +1858,8 @@ def run(*, project_path: str, update: bool) -> None:
         cached = get_calc_engine(cfg.calc_engine).evaluate(built)
         write_cached(project.calc_cache_dir, key, cached)
 
-    current = snapshot_from_calc_result(cached)
+    workbook = read_source(project.root)
+    current = snapshot_from_calc_result(cached, workbook)
     snap_path = project.snapshots_dir / f'{cfg.name}.json'
 
     if not snap_path.is_file():
@@ -1594,12 +1900,12 @@ git commit -m "snapshot: golden-file regression command"
 
 ---
 
-## Task 10: End-to-end recalc/test/snapshot test
+## Task 11: End-to-end recalc/test/snapshot test
 
 **Files:**
 - Create: `tests/test_end_to_end_recalc.py`
 
-This task wires Tasks 4–9 together against a single project to catch
+This task wires Tasks 5–10 together against a single project to catch
 integration bugs early.
 
 - [ ] **Step 1: Write the test**
@@ -1614,7 +1920,7 @@ from unmagic import fixture, use
 
 from claudesheets.cli import main
 from claudesheets.testing import Model
-from claudesheets.testing.fixtures import requires_libreoffice
+from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -1684,7 +1990,7 @@ git commit -m "tests: end-to-end recalc/snapshot/model"
 
 ---
 
-## Task 11: Documentation pass
+## Task 12: Documentation pass
 
 **Files:**
 - Modify: `README.md`
@@ -1697,14 +2003,15 @@ Replace the current Status section with:
 ## Status
 
 Plan 2 complete: a swappable calc engine (LibreOffice headless),
-content-addressed calc cache, and `recalc`, `test`, and `snapshot`
-commands. The `claudesheets.testing.Model` API gives pytest tests
-`set/get/recalc` over a built workbook. Diff/check, conditional
+deterministic xlsx builds, content-addressed calc cache, and
+`recalc`, `test`, and `snapshot` commands. The
+`claudesheets.testing.Model` API gives [testsweet](https://github.com/kaapstorm/testsweet)
+tests `set/get/recalc` over a built workbook. Diff/check, conditional
 formatting, comments, and the escape-hatch re-import flow are coming
 in Plans 3–4.
 ```
 
-- [ ] **Step 2: Add a brief Calc engine section**
+- [ ] **Step 2: Add Calc engine and Testing sections**
 
 Append after the Quick reference:
 
@@ -1724,6 +2031,41 @@ calc_engine = "libreoffice"
 
 The interface is documented in `src/claudesheets/calc/base.py`;
 implement `CalcEngine.evaluate` to add a new backend.
+
+## Testing your model
+
+Tests use [testsweet](https://github.com/kaapstorm/testsweet) — plain
+Python functions decorated with `@test`. Install claudesheets into
+your project venv (not via `uv tool install`, which isolates
+claudesheets from your project's dependencies):
+
+\`\`\`bash
+uv add claudesheets
+# or, if not using uv:
+pip install claudesheets
+\`\`\`
+
+Then write tests under `tests/`:
+
+\`\`\`python
+import math
+
+from testsweet import test
+
+from claudesheets.testing import Model
+
+
+@test
+def revenue_grows_with_assumption():
+    model = Model.open('.')
+    model.set('Assumptions!growth_rate', 0.05)
+    assert math.isclose(
+        model.get('Outputs!revenue_2027'), 1_234_567, rel_tol=1e-6
+    )
+\`\`\`
+
+Run them with `claudesheets test` (in-process testsweet) or directly
+with `python -m testsweet tests/`.
 ```
 
 - [ ] **Step 3: Verify**
@@ -1748,8 +2090,8 @@ git commit -m "docs: update status after Plan 2"
    when `soffice` is missing; on machines with it, they pass).
 2. `claudesheets recalc` produces a cache entry; second run reports
    `cache hit`.
-3. `claudesheets test` runs the project's pytest tests and propagates
-   exit codes.
+3. `claudesheets test` runs the project's testsweet tests in-process
+   and propagates exit codes.
 4. `claudesheets snapshot` initializes, reports clean, reports diffs,
    and supports `--update`.
 5. `from claudesheets.testing import Model` followed by

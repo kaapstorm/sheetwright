@@ -176,21 +176,33 @@ based on file mtime.
 
 ### Testing model
 
-**Primary path: pytest.** Tests are plain Python:
+**Primary path: testsweet.** Tests are plain Python functions decorated
+with `@test`, with no fixture-injection magic:
 
 ```python
-def test_revenue_grows_with_assumption(model):
-    model.set("Assumptions!growth_rate", 0.05)
-    model.recalc()
-    assert model.get("Outputs!revenue_2027") == approx(1_234_567)
+import math
+
+from testsweet import test
+
+from claudesheets.testing import Model
+
+
+@test
+def revenue_grows_with_assumption():
+    model = Model.open('.')
+    model.set('Assumptions!growth_rate', 0.05)
+    assert math.isclose(
+        model.get('Outputs!revenue_2027'), 1_234_567, rel_tol=1e-6
+    )
 ```
 
-A small `claudesheets.testing` library exposes `model.set/get/recalc` over
-the chosen calc engine. Familiar to any developer using Claude Code; pytest
-does the heavy lifting.
+A small `claudesheets.testing` library exposes `Model.set/get/recalc` over
+the chosen calc engine. [Testsweet](https://github.com/kaapstorm/testsweet)
+does the heavy lifting; tests are explicit Python — no name-prefix
+discovery, no fixture injection.
 
 **Complementary path: golden-file snapshots.** `claudesheets snapshot`
-computes all calculated outputs and compares to a checked-in golden file.
+computes all formula-cell outputs and compares to a checked-in golden file.
 Catches regressions broadly. Snapshots are reviewed and accepted by running
 `claudesheets snapshot --update`. The economist confirms calculated outputs
 in the rebuilt workbook; Claude updates snapshots after she signs off.
