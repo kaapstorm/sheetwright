@@ -3,3 +3,20 @@
 A calc engine evaluates a built `.xlsx` and returns the calculated
 values for every cell. The default engine is LibreOffice headless.
 """
+
+from __future__ import annotations
+
+from claudesheets.calc.base import CalcEngine, CalcResult
+
+
+def get_calc_engine(name: str) -> CalcEngine:
+    if name == 'libreoffice':
+        from claudesheets.calc.libreoffice import (  # type: ignore[import-untyped]
+            LibreOfficeEngine,
+        )
+
+        return LibreOfficeEngine()
+    raise ValueError(f'unknown calc engine: {name!r}')
+
+
+__all__ = ['CalcEngine', 'CalcResult', 'get_calc_engine']
