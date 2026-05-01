@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+import zipfile
+from datetime import datetime
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -24,6 +27,53 @@ from claudesheets.model.workbook import Workbook
 _Underline = Optional[
     Literal['single', 'double', 'singleAccounting', 'doubleAccounting', 'none']
 ]
+
+# Deterministic epoch for all generated xlsx files
+_DETERMINISTIC_EPOCH = datetime(2000, 1, 1)
+
+
+def _fix_xlsx_timestamps(path: Path, epoch: datetime) -> None:
+    """Rewrite xlsx core.xml and zip metadata for deterministic builds.
+
+    openpyxl sets properties.modified to the current time during save
+    regardless of what we've set. Also, zip file entry metadata includes
+    timestamps. We post-process both to ensure determinism.
+    """
+    # Convert epoch to DOS timestamp (year, month, day, hour, minute, second)
+    dos_date_time = (
+        epoch.year,
+        epoch.month,
+        epoch.day,
+        epoch.hour,
+        epoch.minute,
+        epoch.second,
+    )
+
+    # Read all files from the zip
+    with zipfile.ZipFile(path, 'r') as z:
+        files_data = {name: z.read(name) for name in z.namelist()}
+
+    # Fix core.xml timestamp
+    core_xml = files_data['docProps/core.xml'].decode('utf-8')
+    epoch_str = epoch.isoformat() + 'Z'
+    core_xml = re.sub(
+        r'<dcterms:modified[^>]*>.*?</dcterms:modified>',
+        (
+            f'<dcterms:modified xsi:type="dcterms:W3CDTF">'
+            f'{epoch_str}</dcterms:modified>'
+        ),
+        core_xml,
+    )
+    files_data['docProps/core.xml'] = core_xml.encode('utf-8')
+
+    # Rewrite the zip with deterministic order and timestamps
+    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as z:
+        for name in sorted(files_data.keys()):
+            info = zipfile.ZipInfo(name, dos_date_time)
+            # Use DEFLATE compression for all files (except dirs)
+            if not name.endswith('/'):
+                info.compress_type = zipfile.ZIP_DEFLATED
+            z.writestr(info, files_data[name])
 
 
 def _xfont(font: Optional[Font]) -> Optional[XFont]:
@@ -120,4 +170,7 @@ def write_xlsx(wb: Workbook, path: Path) -> None:
             assert nr.sheet is not None
             out[nr.sheet].defined_names[nr.name] = defn
 
+    out.properties.created = _DETERMINISTIC_EPOCH
+    out.properties.modified = _DETERMINISTIC_EPOCH
     out.save(path)
+    _fix_xlsx_timestamps(path, _DETERMINISTIC_EPOCH)
