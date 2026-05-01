@@ -188,8 +188,6 @@ def test_calc_result_shape():
 
 
 class _Recorder(CalcEngine):
-    name = 'recorder'
-
     def evaluate(self, xlsx_path: Path) -> CalcResult:
         return {'Recorded': {'A1': str(xlsx_path)}}
 
@@ -226,8 +224,6 @@ CalcResult = Dict[str, Dict[str, CellValue]]
 
 class CalcEngine(ABC):
     """Abstract calc engine: evaluate a built .xlsx and return values."""
-
-    name: str = ''
 
     @abstractmethod
     def evaluate(self, xlsx_path: Path) -> CalcResult:
@@ -408,8 +404,6 @@ class LibreOfficeError(RuntimeError):
 
 
 class LibreOfficeEngine(CalcEngine):
-    name = 'libreoffice'
-
     def __init__(self, soffice: str = 'soffice', timeout: float = 120.0):
         self.soffice = soffice
         self.timeout = timeout
