@@ -81,5 +81,24 @@ def recalc_cmd(project_path: str, force: bool) -> None:
     run(project_path=project_path, force=force)
 
 
+@main.command(
+    'test',
+    context_settings={'ignore_unknown_options': True},
+)
+@click.option(
+    '--project',
+    'project_path',
+    type=click.Path(file_okay=False),
+    default='.',
+    help='Path to the claudesheets project.',
+)
+@click.argument('targets', nargs=-1, type=click.UNPROCESSED)
+def test_cmd(project_path: str, targets: tuple[str, ...]) -> None:
+    """Run the project's testsweet tests."""
+    from claudesheets.commands.test_cmd import run
+
+    run(project_path=project_path, targets=list(targets))
+
+
 if __name__ == '__main__':  # pragma: no cover
     sys.exit(main())

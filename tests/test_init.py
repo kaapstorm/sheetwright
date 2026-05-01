@@ -20,6 +20,8 @@ def test_init_creates_project_skeleton():
     assert (project / 'workbook.toml').is_file()
     assert (project / 'sheets').is_dir()
     assert (project / 'data').is_dir()
+    assert (project / 'tests').is_dir()
+    assert (project / 'tests' / '__init__.py').is_file()
     assert (project / '.gitignore').is_file()
 
     gitignore = (project / '.gitignore').read_text()

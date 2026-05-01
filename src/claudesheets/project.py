@@ -51,6 +51,10 @@ class Project:
     def imports_dir(self) -> Path:
         return self.root / 'imports'
 
+    @property
+    def tests_dir(self) -> Path:
+        return self.root / 'tests'
+
 
 def slugify(name: str) -> str:
     s = re.sub(r'[^A-Za-z0-9]+', '_', name).strip('_').lower()

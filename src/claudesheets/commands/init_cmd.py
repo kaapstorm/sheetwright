@@ -43,6 +43,8 @@ def run(path: str) -> None:
     project.mkdir(parents=True, exist_ok=True)
     (project / 'sheets').mkdir()
     (project / 'data').mkdir()
+    (project / 'tests').mkdir()
+    (project / 'tests' / '__init__.py').write_text('')
     (project / 'claudesheets.toml').write_text(DEFAULT_CLAUDESHEETS_TOML)
     (project / 'workbook.toml').write_text(DEFAULT_WORKBOOK_TOML)
     (project / '.gitignore').write_text(DEFAULT_GITIGNORE)
