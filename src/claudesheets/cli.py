@@ -81,6 +81,26 @@ def recalc_cmd(project_path: str, force: bool) -> None:
     run(project_path=project_path, force=force)
 
 
+@main.command('snapshot')
+@click.option(
+    '--project',
+    'project_path',
+    type=click.Path(file_okay=False),
+    default='.',
+    help='Path to the claudesheets project.',
+)
+@click.option(
+    '--update',
+    is_flag=True,
+    help='Overwrite the saved snapshot with the current calculated values.',
+)
+def snapshot_cmd(project_path: str, update: bool) -> None:
+    """Compare or update the golden-file snapshot of calculated values."""
+    from claudesheets.commands.snapshot_cmd import run
+
+    run(project_path=project_path, update=update)
+
+
 @main.command(
     'test',
     context_settings={'ignore_unknown_options': True},
