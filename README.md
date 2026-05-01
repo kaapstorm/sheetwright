@@ -13,10 +13,13 @@ for the design.
 
 ## Status
 
-Plan 1 complete: Tier 1 round-trip foundation. `init`, `import`, `build`
-work end-to-end for values, formulas, named ranges, basic formatting,
-number formats, and data validation. Calc engine, tests, snapshot,
-diff, and the escape-hatch import flow are coming in Plans 2–4.
+Plan 2 complete: a swappable calc engine (LibreOffice headless),
+deterministic xlsx builds, content-addressed calc cache, and
+`recalc`, `test`, and `snapshot` commands. The
+`claudesheets.testing.Model` API gives [testsweet](https://github.com/kaapstorm/testsweet)
+tests `set/get/recalc` over a built workbook. Diff/check, conditional
+formatting, comments, and the escape-hatch re-import flow are coming
+in Plans 3–4.
 
 ## Quick reference
 
@@ -25,7 +28,7 @@ claudesheets init my-model              # scaffold a fresh project
 claudesheets import path/to/model.xlsx  # ingest an existing workbook (or re-import)
 claudesheets build                      # compile sources -> build/<name>.xlsx
 claudesheets recalc                     # run the calc engine, cache results
-claudesheets test                       # run pytest tests
+claudesheets test                       # run testsweet tests
 claudesheets snapshot [--update]        # golden-file regression of outputs
 claudesheets diff [--vs xlsx:<path>]    # semantic diff of source or vs an xlsx
 claudesheets check                      # lint dangling refs, missing names, etc.
@@ -53,6 +56,57 @@ uv run pytest
 
 You will also need [LibreOffice](https://www.libreoffice.org/download/) on
 your `PATH` for the default calc engine.
+
+## Calc engine
+
+The default engine is LibreOffice headless. `soffice` must be on
+`$PATH` (Debian/Ubuntu: `apt install libreoffice`; macOS:
+`brew install --cask libreoffice`).
+
+The engine is selected per-project in `claudesheets.toml`:
+
+```toml
+[build]
+calc_engine = "libreoffice"
+```
+
+The interface is documented in `src/claudesheets/calc/base.py`;
+implement `CalcEngine.evaluate` to add a new backend.
+
+## Testing your model
+
+Tests use [testsweet](https://github.com/kaapstorm/testsweet) — plain
+Python functions decorated with `@test`. Install claudesheets into
+your project venv (not via `uv tool install`, which isolates
+claudesheets from your project's dependencies):
+
+```bash
+uv add claudesheets
+# or, if not using uv:
+pip install claudesheets
+```
+
+Then write tests under `tests/`:
+
+```python
+import math
+
+from testsweet import test
+
+from claudesheets.testing import Model
+
+
+@test
+def revenue_grows_with_assumption():
+    model = Model.open('.')
+    model.set('Assumptions!growth_rate', 0.05)
+    assert math.isclose(
+        model.get('Outputs!revenue_2027'), 1_234_567, rel_tol=1e-6
+    )
+```
+
+Run them with `claudesheets test` (in-process testsweet) or directly
+with `python -m testsweet tests/`.
 
 ## License
 
