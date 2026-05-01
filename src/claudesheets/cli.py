@@ -61,5 +61,25 @@ def build_cmd(out_path: str | None, project_path: str) -> None:
     run(project_path=project_path, out_path=out_path)
 
 
+@main.command('recalc')
+@click.option(
+    '--project',
+    'project_path',
+    type=click.Path(file_okay=False),
+    default='.',
+    help='Path to the claudesheets project.',
+)
+@click.option(
+    '--force',
+    is_flag=True,
+    help='Ignore the cache and re-run the calc engine.',
+)
+def recalc_cmd(project_path: str, force: bool) -> None:
+    """Run the calc engine and cache calculated values."""
+    from claudesheets.commands.recalc_cmd import run
+
+    run(project_path=project_path, force=force)
+
+
 if __name__ == '__main__':  # pragma: no cover
     sys.exit(main())
