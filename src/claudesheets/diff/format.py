@@ -60,8 +60,8 @@ def _render_sheet(buf: StringIO, sd: SheetDiff) -> None:
         pac = sd.print_area_change
         buf.write(f'  * print_area: {pac.old} -> {pac.new}\n')
 
-    for col, (old, new) in sd.column_widths_changed.items():
-        buf.write(f'  * column_width[{col}]: {old} -> {new}\n')
+    for col, (old_w, new_w) in sd.column_widths_changed.items():
+        buf.write(f'  * column_width[{col}]: {old_w} -> {new_w}\n')
 
     for addr in sd.comments_added:
         buf.write(f'  + comment {sd.name}!{addr}\n')
