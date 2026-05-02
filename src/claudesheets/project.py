@@ -59,6 +59,10 @@ class Project:
     def snapshots_dir(self) -> Path:
         return self.tests_dir / 'snapshots'
 
+    @property
+    def build_hash_path(self) -> Path:
+        return self.cache_dir / 'build-hash.json'
+
 
 def slugify(name: str) -> str:
     s = re.sub(r'[^A-Za-z0-9]+', '_', name).strip('_').lower()
