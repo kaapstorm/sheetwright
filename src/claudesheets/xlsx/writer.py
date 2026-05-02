@@ -162,6 +162,9 @@ def write_xlsx(wb: Workbook, path: Path) -> None:
         if sheet.frozen_panes:
             ws.freeze_panes = sheet.frozen_panes
 
+        if sheet.print_area:
+            ws.print_area = sheet.print_area
+
         for addr, cell in sheet.cells.items():
             xc = ws[addr]
             if cell.formula is not None:

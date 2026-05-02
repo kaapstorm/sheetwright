@@ -114,6 +114,9 @@ def dump_yaml(sheet: Sheet) -> str:
     if sheet.frozen_panes:
         doc['frozen_panes'] = sheet.frozen_panes
 
+    if sheet.print_area:
+        doc['print_area'] = sheet.print_area
+
     if sheet.formats:
         doc['formats'] = {
             fid: _fmt_to_dict(f) for fid, f in sheet.formats.items()
@@ -150,6 +153,9 @@ def load_yaml(sheet: Sheet, text: str) -> None:
 
     if doc.get('frozen_panes'):
         sheet.frozen_panes = str(doc['frozen_panes'])
+
+    if doc.get('print_area'):
+        sheet.print_area = str(doc['print_area'])
 
     for fid, d in (doc.get('formats') or {}).items():
         sheet.formats[fid] = _fmt_from_dict(dict(d))

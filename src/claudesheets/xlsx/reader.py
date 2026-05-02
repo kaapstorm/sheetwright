@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -14,6 +15,16 @@ from claudesheets.model.cell import Cell
 from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
 from claudesheets.model.validation import DataValidation
 from claudesheets.model.workbook import NamedRange, Sheet, Workbook
+
+
+_PRINT_AREA_PREFIX = re.compile(r"^(?:'[^']+'|[^!]+)!")
+
+
+def _strip_sheet_prefix_and_dollars(area: Optional[str]) -> Optional[str]:
+    if not area:
+        return None
+    s = _PRINT_AREA_PREFIX.sub('', area)
+    return s.replace('$', '')
 
 
 def _normalise_color(c: object) -> Optional[str]:
@@ -134,6 +145,7 @@ def read_xlsx(path: Path) -> Workbook:
         for dv in ws.data_validations.dataValidation:
             sheet.validations.append(_read_validation(dv))
         sheet.frozen_panes = ws.freeze_panes
+        sheet.print_area = _strip_sheet_prefix_and_dollars(ws.print_area)
         for row in ws.iter_rows():
             for c in row:
                 if not isinstance(c, XCell):
