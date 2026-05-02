@@ -17,3 +17,8 @@ build/
 .vscode/
 .idea/
 .DS_Store
+
+# Claude artifacts
+claude/plans/
+claude/reviews/
+claude/transcripts/
