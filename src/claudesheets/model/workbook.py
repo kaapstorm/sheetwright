@@ -6,7 +6,10 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from claudesheets.model.cell import Cell
+from claudesheets.model.comment import Comment
+from claudesheets.model.conditional import ConditionalFormat
 from claudesheets.model.format import CellFormat
+from claudesheets.model.table import ListTable
 from claudesheets.model.validation import DataValidation
 
 
@@ -32,6 +35,10 @@ class Sheet:
     formats: Dict[str, CellFormat] = field(default_factory=dict)
     validations: List[DataValidation] = field(default_factory=list)
     frozen_panes: Optional[str] = None  # e.g. "B2"; reserved for Plan 3
+    print_area: Optional[str] = None
+    comments: Dict[str, Comment] = field(default_factory=dict)
+    conditional_formats: List[ConditionalFormat] = field(default_factory=list)
+    tables: List[ListTable] = field(default_factory=list)
 
     def get(self, address: str) -> Cell:
         return self.cells.get(address, Cell())
