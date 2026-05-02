@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from typing import Optional
 
 import click
 
@@ -99,6 +100,29 @@ def snapshot_cmd(project_path: str, update: bool) -> None:
     from claudesheets.commands.snapshot_cmd import run
 
     run(project_path=project_path, update=update)
+
+
+@main.command('diff')
+@click.option(
+    '--project',
+    'project_path',
+    type=click.Path(file_okay=False),
+    default='.',
+    help='Path to the claudesheets project.',
+)
+@click.option(
+    '--vs',
+    'vs',
+    type=str,
+    default=None,
+    help='Comparison target: "xlsx:<path>" or "source:<path>". '
+    'Default: build/<name>.xlsx of this project.',
+)
+def diff_cmd(project_path: str, vs: Optional[str]) -> None:
+    """Show a semantic diff between source and a target workbook."""
+    from claudesheets.commands.diff_cmd import run
+
+    run(project_path=project_path, vs=vs)
 
 
 @main.command(
