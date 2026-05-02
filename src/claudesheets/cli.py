@@ -32,6 +32,13 @@ def init_cmd(path: str) -> None:
     help='Replace external-reference formulas with cached values.',
 )
 @click.option(
+    '-I',
+    '--non-interactive',
+    'non_interactive',
+    is_flag=True,
+    help='Print the diff and exit; use --apply or --abort to follow up.',
+)
+@click.option(
     '--project',
     'project_path',
     type=click.Path(file_okay=False),
@@ -39,7 +46,11 @@ def init_cmd(path: str) -> None:
     help='Path to the claudesheets project.',
 )
 def import_cmd(
-    xlsx: str, archive: bool, flatten: bool, project_path: str
+    xlsx: str,
+    archive: bool,
+    flatten: bool,
+    non_interactive: bool,
+    project_path: str,
 ) -> None:
     """Read an .xlsx file into source form."""
     from claudesheets.commands.import_cmd import run
@@ -49,6 +60,7 @@ def import_cmd(
         project_path=project_path,
         archive=archive,
         flatten=flatten,
+        non_interactive=non_interactive,
     )
 
 

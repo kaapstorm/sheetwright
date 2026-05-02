@@ -24,21 +24,28 @@ def run(
     project_path: str,
     archive: bool,
     flatten: bool,
+    non_interactive: bool,
 ) -> None:
     xlsx = Path(xlsx_path).resolve()
     project_root = Path(project_path).resolve()
 
     try:
-        Project.open(project_root)
+        project = Project.open(project_root)
     except ProjectError as e:
         raise click.ClickException(str(e))
 
     sheets_dir = project_root / 'sheets'
     if any(sheets_dir.iterdir()):
-        raise click.ClickException(
-            f'sheets/ in {project_root} is non-empty; '
-            'review-first re-import is deferred to a later release.'
+        from claudesheets.reimport import do_reimport
+
+        do_reimport(
+            project,
+            xlsx,
+            archive=archive,
+            flatten=flatten,
+            non_interactive=non_interactive,
         )
+        return
 
     extrefs = detect_external_refs(xlsx)
     if extrefs and not flatten:

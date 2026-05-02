@@ -48,7 +48,7 @@ def test_import_with_archive_copies_xlsx(tmp_path):
 
 
 @use(project)
-def test_import_refuses_when_source_already_populated(tmp_path):
+def test_import_enters_reimport_flow_when_source_populated(tmp_path):
     src = tmp_path / 'in.xlsx'
     write_simple_xlsx(src)
     (project() / 'sheets' / '01_existing.md').write_text(
@@ -57,13 +57,12 @@ def test_import_refuses_when_source_already_populated(tmp_path):
 
     runner = CliRunner()
     result = runner.invoke(
-        main, ['import', str(src), '--project', str(project())]
+        main,
+        ['import', str(src), '--project', str(project())],
+        input='r\n',
     )
-    assert result.exit_code != 0
-    assert (
-        'non-empty' in result.output.lower()
-        or 'exist' in result.output.lower()
-    )
+    assert result.exit_code == 0, result.output
+    assert 'rejected' in result.output.lower()
 
 
 @use(project)
