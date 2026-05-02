@@ -17,6 +17,7 @@ from openpyxl.worksheet.table import (
     TableColumn as XTableColumn,
     TableStyleInfo as XTableStyleInfo,
 )
+from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.styles import (
     Border as XBorder,
     Color,
@@ -143,7 +144,7 @@ def _apply_format(cell: XCell, fmt: CellFormat) -> None:
         cell.number_format = fmt.number_format
 
 
-def _write_tables(ws: object, tables: list[ListTable]) -> None:
+def _write_tables(ws: Worksheet, tables: list[ListTable]) -> None:
     for t in tables:
         xcols = [
             XTableColumn(
@@ -165,16 +166,16 @@ def _write_tables(ws: object, tables: list[ListTable]) -> None:
         )
         if t.style:
             xt.tableStyleInfo = XTableStyleInfo(name=t.style)
-        ws.add_table(xt)  # type: ignore[attr-defined]
+        ws.add_table(xt)
 
 
 def _write_conditional_formats(
-    ws: object, cfs: list[ConditionalFormat]
+    ws: Worksheet, cfs: list[ConditionalFormat]
 ) -> None:
     for cf in cfs:
         xrule = cf_to_openpyxl_rule(cf)
         for r in cf.ranges:
-            ws.conditional_formatting.add(r, xrule)  # type: ignore[attr-defined]
+            ws.conditional_formatting.add(r, xrule)
 
 
 def write_xlsx(wb: Workbook, path: Path) -> None:

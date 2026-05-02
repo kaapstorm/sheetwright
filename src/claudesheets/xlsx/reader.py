@@ -10,6 +10,7 @@ from typing import Any, Optional
 import openpyxl
 from openpyxl.cell.cell import Cell as XCell
 from openpyxl.worksheet.datavalidation import DataValidation as XDV
+from openpyxl.worksheet.worksheet import Worksheet
 
 from claudesheets.model.cell import Cell
 from claudesheets.model.comment import Comment as Cmt
@@ -136,7 +137,7 @@ def _format_id(fmt: CellFormat) -> str:
     return f'f-{h}'
 
 
-def _read_tables(ws: Any) -> list[ListTable]:
+def _read_tables(ws: Worksheet) -> list[ListTable]:
     out: list[ListTable] = []
     for tbl in ws.tables.values():
         cols = tuple(
@@ -165,7 +166,7 @@ def _read_tables(ws: Any) -> list[ListTable]:
     return out
 
 
-def _read_conditional_formats(ws: Any) -> list[ConditionalFormat]:
+def _read_conditional_formats(ws: Worksheet) -> list[ConditionalFormat]:
     out: list[ConditionalFormat] = []
     for item in ws.conditional_formatting:
         ranges = tuple(str(r) for r in item.sqref.ranges)
