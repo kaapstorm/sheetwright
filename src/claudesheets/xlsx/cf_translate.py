@@ -33,7 +33,6 @@ from claudesheets.model.conditional import (
 def cf_from_openpyxl_rule(
     ranges: Tuple[str, ...], rule: Rule
 ) -> ConditionalFormat:
-    style = _style_from_dxf(rule.dxf) if rule.dxf else None
     common = {
         'ranges': ranges,
         'priority': rule.priority,
@@ -41,6 +40,7 @@ def cf_from_openpyxl_rule(
     }
 
     if rule.type == 'cellIs':
+        style = _style_from_dxf(rule.dxf) if rule.dxf else None
         return CellIsRule(
             **common,  # type: ignore[arg-type]
             operator=rule.operator or 'equal',
@@ -48,6 +48,7 @@ def cf_from_openpyxl_rule(
             style=style,
         )
     if rule.type == 'expression':
+        style = _style_from_dxf(rule.dxf) if rule.dxf else None
         formulas = list(rule.formula or [])
         return FormulaRule(
             **common,  # type: ignore[arg-type]

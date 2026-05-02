@@ -26,8 +26,11 @@ from openpyxl.styles import (
 )
 from openpyxl.workbook.defined_name import DefinedName
 
+from claudesheets.model.conditional import ConditionalFormat
 from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
+from claudesheets.model.table import ListTable
 from claudesheets.model.workbook import Workbook
+from claudesheets.xlsx.cf_translate import cf_to_openpyxl_rule
 
 # openpyxl's underline Literal type
 _Underline = Optional[
@@ -73,8 +76,8 @@ def _fix_xlsx_timestamps(path: Path, epoch: datetime) -> None:
     )
     if n != 1:
         raise RuntimeError(
-            f'expected exactly one <dcterms:modified> in core.xml, '
-            f'found {n}; openpyxl output may have changed'
+            f'unexpected <dcterms:modified> count {n} in {path} '
+            f'(expected 1); openpyxl output may have changed'
         )
     files_data['docProps/core.xml'] = core_xml.encode('utf-8')
 
@@ -140,6 +143,40 @@ def _apply_format(cell: XCell, fmt: CellFormat) -> None:
         cell.number_format = fmt.number_format
 
 
+def _write_tables(ws: object, tables: list[ListTable]) -> None:
+    for t in tables:
+        xcols = [
+            XTableColumn(
+                id=i + 1,
+                name=c.name,
+                calculatedColumnFormula=c.formula,  # type: ignore[arg-type]
+                totalsRowLabel=c.totals_label,
+                totalsRowFunction=c.totals_function,  # type: ignore[arg-type]
+            )
+            for i, c in enumerate(t.columns)
+        ]
+        xt = XTable(
+            displayName=t.name,
+            name=t.name,
+            ref=t.ref,
+            headerRowCount=t.header_row_count,
+            totalsRowCount=t.totals_row_count,
+            tableColumns=xcols,
+        )
+        if t.style:
+            xt.tableStyleInfo = XTableStyleInfo(name=t.style)
+        ws.add_table(xt)  # type: ignore[attr-defined]
+
+
+def _write_conditional_formats(
+    ws: object, cfs: list[ConditionalFormat]
+) -> None:
+    for cf in cfs:
+        xrule = cf_to_openpyxl_rule(cf)
+        for r in cf.ranges:
+            ws.conditional_formatting.add(r, xrule)  # type: ignore[attr-defined]
+
+
 def write_xlsx(wb: Workbook, path: Path) -> None:
     path = Path(path)
     out = openpyxl.Workbook()
@@ -171,35 +208,8 @@ def write_xlsx(wb: Workbook, path: Path) -> None:
         if sheet.print_area:
             ws.print_area = sheet.print_area
 
-        for t in sheet.tables:
-            xcols = [
-                XTableColumn(
-                    id=i + 1,
-                    name=c.name,
-                    calculatedColumnFormula=c.formula,  # type: ignore[arg-type]
-                    totalsRowLabel=c.totals_label,
-                    totalsRowFunction=c.totals_function,  # type: ignore[arg-type]
-                )
-                for i, c in enumerate(t.columns)
-            ]
-            xt = XTable(
-                displayName=t.name,
-                name=t.name,
-                ref=t.ref,
-                headerRowCount=t.header_row_count,
-                totalsRowCount=t.totals_row_count,
-                tableColumns=xcols,
-            )
-            if t.style:
-                xt.tableStyleInfo = XTableStyleInfo(name=t.style)
-            ws.add_table(xt)
-
-        from claudesheets.xlsx.cf_translate import cf_to_openpyxl_rule
-
-        for cf in sheet.conditional_formats:
-            xrule = cf_to_openpyxl_rule(cf)
-            for r in cf.ranges:
-                ws.conditional_formatting.add(r, xrule)
+        _write_tables(ws, sheet.tables)
+        _write_conditional_formats(ws, sheet.conditional_formats)
 
         for addr, cell in sheet.cells.items():
             xc = ws[addr]

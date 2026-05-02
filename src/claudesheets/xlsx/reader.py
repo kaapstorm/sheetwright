@@ -13,10 +13,12 @@ from openpyxl.worksheet.datavalidation import DataValidation as XDV
 
 from claudesheets.model.cell import Cell
 from claudesheets.model.comment import Comment as Cmt
+from claudesheets.model.conditional import ConditionalFormat
 from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
 from claudesheets.model.table import ListTable, ListTableColumn
 from claudesheets.model.validation import DataValidation
 from claudesheets.model.workbook import NamedRange, Sheet, Workbook
+from claudesheets.xlsx.cf_translate import cf_from_openpyxl_rule
 
 
 _PRINT_AREA_PREFIX = re.compile(r"^(?:'[^']+'|[^!]+)!")
@@ -134,6 +136,44 @@ def _format_id(fmt: CellFormat) -> str:
     return f'f-{h}'
 
 
+def _read_tables(ws: Any) -> list[ListTable]:
+    out: list[ListTable] = []
+    for tbl in ws.tables.values():
+        cols = tuple(
+            ListTableColumn(
+                name=tc.name,
+                formula=tc.calculatedColumnFormula,
+                totals_label=tc.totalsRowLabel,
+                totals_function=tc.totalsRowFunction,
+            )
+            for tc in (tbl.tableColumns or [])
+        )
+        out.append(
+            ListTable(
+                name=tbl.displayName,
+                ref=tbl.ref,
+                header_row_count=(
+                    tbl.headerRowCount if tbl.headerRowCount is not None else 1
+                ),
+                totals_row_count=tbl.totalsRowCount or 0,
+                columns=cols,
+                style=(
+                    tbl.tableStyleInfo.name if tbl.tableStyleInfo else None
+                ),
+            )
+        )
+    return out
+
+
+def _read_conditional_formats(ws: Any) -> list[ConditionalFormat]:
+    out: list[ConditionalFormat] = []
+    for item in ws.conditional_formatting:
+        ranges = tuple(str(r) for r in item.sqref.ranges)
+        for rule in item.rules:
+            out.append(cf_from_openpyxl_rule(ranges, rule))
+    return out
+
+
 def read_xlsx(path: Path) -> Workbook:
     path = Path(path)
     src = openpyxl.load_workbook(path, data_only=False)
@@ -148,32 +188,7 @@ def read_xlsx(path: Path) -> Workbook:
             sheet.validations.append(_read_validation(dv))
         sheet.frozen_panes = ws.freeze_panes
         sheet.print_area = _strip_sheet_prefix_and_dollars(ws.print_area)
-        for tbl in ws.tables.values():
-            cols = tuple(
-                ListTableColumn(
-                    name=tc.name,
-                    formula=tc.calculatedColumnFormula,
-                    totals_label=tc.totalsRowLabel,
-                    totals_function=tc.totalsRowFunction,
-                )
-                for tc in (tbl.tableColumns or [])
-            )
-            sheet.tables.append(
-                ListTable(
-                    name=tbl.displayName,
-                    ref=tbl.ref,
-                    header_row_count=(
-                        tbl.headerRowCount
-                        if tbl.headerRowCount is not None
-                        else 1
-                    ),
-                    totals_row_count=tbl.totalsRowCount or 0,
-                    columns=cols,
-                    style=(
-                        tbl.tableStyleInfo.name if tbl.tableStyleInfo else None
-                    ),
-                )
-            )
+        sheet.tables.extend(_read_tables(ws))
         for row in ws.iter_rows():
             for c in row:
                 if not isinstance(c, XCell):
@@ -208,14 +223,7 @@ def read_xlsx(path: Path) -> Workbook:
                         text=c.comment.text or '',
                     )
 
-        from claudesheets.xlsx.cf_translate import cf_from_openpyxl_rule
-
-        for item in ws.conditional_formatting:
-            ranges = tuple(str(r) for r in item.sqref.ranges)
-            for rule in item.rules:
-                sheet.conditional_formats.append(
-                    cf_from_openpyxl_rule(ranges, rule)
-                )
+        sheet.conditional_formats.extend(_read_conditional_formats(ws))
         wb.sheets.append(sheet)
 
     for name, defn in src.defined_names.items():

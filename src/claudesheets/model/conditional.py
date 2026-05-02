@@ -22,6 +22,9 @@ from typing import Optional, Tuple, Union
 class CFStyle:
     """Lossy subset of openpyxl's DifferentialStyle.
 
+    Carried by CellIsRule and FormulaRule. ColorScaleRule, DataBarRule,
+    and IconSetRule paint themselves and don't accept a CFStyle.
+
     Sufficient for the common econometric uses (fill highlight + bold
     text). Borders, gradient fills, named numFmts, etc. are dropped on
     round-trip. See test_xlsx_conditional_lossiness.py for the

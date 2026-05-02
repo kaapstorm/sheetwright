@@ -322,6 +322,7 @@ def dump_yaml(sheet: Sheet) -> str:
         ]
 
     if sheet.validations:
+        # DataValidation is flat — asdict() works. Tighten if nested fields land.
         doc['validations'] = [
             {
                 k: v

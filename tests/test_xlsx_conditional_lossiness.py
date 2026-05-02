@@ -49,9 +49,9 @@ def test_cf_with_border_round_trips_structure_but_drops_border(
     assert 'A1:A10' in cf.ranges
 
     assert cf.style is not None
-    assert cf.style.fill_color == '00FF00FF00' or (
-        cf.style.fill_color == 'FF00FF00'
-    )
+    # openpyxl normalizes ARGB hex inconsistently across versions; tolerate
+    # both leading-FF and trailing-FF forms.
+    assert cf.style.fill_color in ('00FF00FF00', 'FF00FF00')
 
 
 def test_cf_with_font_bold_round_trips_through_xlsx(tmp_path: Path):
