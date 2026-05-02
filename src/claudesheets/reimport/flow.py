@@ -23,6 +23,8 @@ from claudesheets.diff.format import render
 from claudesheets.project import Project
 from claudesheets.reimport.session import (
     ReimportSession,
+    clear_session,
+    load_session,
     save_session,
 )
 from claudesheets.source.reader import read_source
@@ -92,6 +94,37 @@ def do_reimport(
     if archive:
         archive_xlsx(xlsx, project.root)
     click.echo(f'Source updated from {xlsx}.')
+
+
+def apply_session(project: Project, *, archive: bool, flatten: bool) -> None:
+    """Complete a previously-staged -I session.
+
+    Reads the session, opens the staged xlsx, optionally flattens
+    external refs, writes source, optionally archives, and clears
+    the session file.
+    """
+    session = load_session(project.reimport_session_path)
+    if session is None:
+        raise click.ClickException(
+            'No staged re-import session. '
+            'Run `claudesheets import <xlsx> -I` first.'
+        )
+
+    xlsx = Path(session.xlsx_path)
+    if not xlsx.is_file():
+        raise click.ClickException(
+            f'Staged xlsx no longer exists at {xlsx}. Re-stage with -I.'
+        )
+
+    new_wb = read_xlsx(xlsx)
+    if flatten:
+        flatten_external_refs(new_wb, xlsx)
+    write_source(new_wb, project.root)
+    if archive:
+        archive_xlsx(xlsx, project.root)
+
+    clear_session(project.reimport_session_path)
+    click.echo(f'Applied staged changes from {xlsx}.')
 
 
 def archive_xlsx(xlsx: Path, project_root: Path) -> None:

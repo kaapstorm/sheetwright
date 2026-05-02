@@ -24,7 +24,11 @@ def init_cmd(path: str) -> None:
 
 
 @main.command('import')
-@click.argument('xlsx', type=click.Path(exists=True, dir_okay=False))
+@click.argument(
+    'xlsx',
+    type=click.Path(exists=True, dir_okay=False),
+    required=False,
+)
 @click.option('--archive', is_flag=True, help='Copy the xlsx into imports/.')
 @click.option(
     '--flatten',
@@ -39,6 +43,16 @@ def init_cmd(path: str) -> None:
     help='Print the diff and exit; use --apply or --abort to follow up.',
 )
 @click.option(
+    '--apply',
+    is_flag=True,
+    help='Apply a previously staged re-import.',
+)
+@click.option(
+    '--abort',
+    is_flag=True,
+    help='Discard a previously staged re-import.',
+)
+@click.option(
     '--project',
     'project_path',
     type=click.Path(file_okay=False),
@@ -46,13 +60,16 @@ def init_cmd(path: str) -> None:
     help='Path to the claudesheets project.',
 )
 def import_cmd(
-    xlsx: str,
+    xlsx: Optional[str],
     archive: bool,
     flatten: bool,
     non_interactive: bool,
+    apply: bool,
+    abort: bool,
     project_path: str,
 ) -> None:
-    """Read an .xlsx file into source form."""
+    """Read an .xlsx file into source form, or merge updates into an
+    existing project."""
     from claudesheets.commands.import_cmd import run
 
     run(
@@ -61,6 +78,8 @@ def import_cmd(
         archive=archive,
         flatten=flatten,
         non_interactive=non_interactive,
+        apply=apply,
+        abort=abort,
     )
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from claudesheets.reimport.flow import (
+    apply_session,
     archive_xlsx,
     do_reimport,
 )
@@ -15,6 +16,7 @@ from claudesheets.reimport.session import (
 
 __all__ = [
     'ReimportSession',
+    'apply_session',
     'archive_xlsx',
     'clear_session',
     'do_reimport',

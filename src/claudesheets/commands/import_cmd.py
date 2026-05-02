@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import click
 
@@ -20,19 +21,40 @@ from claudesheets.xlsx.reader import read_xlsx
 
 def run(
     *,
-    xlsx_path: str,
+    xlsx_path: Optional[str],
     project_path: str,
     archive: bool,
     flatten: bool,
     non_interactive: bool,
+    apply: bool,
+    abort: bool,
 ) -> None:
-    xlsx = Path(xlsx_path).resolve()
     project_root = Path(project_path).resolve()
 
     try:
         project = Project.open(project_root)
     except ProjectError as e:
         raise click.ClickException(str(e))
+
+    if abort:
+        from claudesheets.reimport import clear_session
+
+        clear_session(project.reimport_session_path)
+        click.echo('Session cleared.')
+        return
+
+    if apply:
+        from claudesheets.reimport import apply_session
+
+        apply_session(project, archive=archive, flatten=flatten)
+        return
+
+    if xlsx_path is None:
+        raise click.ClickException(
+            'Missing XLSX argument. Pass a path, or use --apply / --abort '
+            'to act on a staged session.'
+        )
+    xlsx = Path(xlsx_path).resolve()
 
     sheets_dir = project_root / 'sheets'
     if any(sheets_dir.iterdir()):
