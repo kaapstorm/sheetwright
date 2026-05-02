@@ -82,13 +82,13 @@ class ColorScaleRule(ConditionalFormatBase):
 
     start_type: str = 'min'
     start_value: Optional[str] = None
-    start_color: str = 'FFFFFFFF'
+    start_color: Optional[str] = None
     mid_type: Optional[str] = None
     mid_value: Optional[str] = None
     mid_color: Optional[str] = None
     end_type: str = 'max'
     end_value: Optional[str] = None
-    end_color: str = 'FF000000'
+    end_color: Optional[str] = None
 
 
 @dataclass(frozen=True)

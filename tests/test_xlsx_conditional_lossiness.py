@@ -10,7 +10,7 @@ from pathlib import Path
 
 import openpyxl
 from openpyxl.formatting.rule import CellIsRule as XCellIsRule
-from openpyxl.styles import Border, PatternFill, Side
+from openpyxl.styles import Border, Color, Font, PatternFill, Side
 from openpyxl.styles.differential import DifferentialStyle
 
 from claudesheets.model.conditional import CellIsRule
@@ -52,3 +52,27 @@ def test_cf_with_border_round_trips_structure_but_drops_border(
     assert cf.style.fill_color == '00FF00FF00' or (
         cf.style.fill_color == 'FF00FF00'
     )
+
+
+def test_cf_with_font_bold_round_trips_through_xlsx(tmp_path: Path):
+    """font_bold IS supposed to survive xlsx round-trip post-fix."""
+    src = tmp_path / 'in_font.xlsx'
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'S'
+    rule = XCellIsRule(operator='greaterThan', formula=['0'])
+    rule.dxf = DifferentialStyle(
+        font=Font(b=True, color=Color(rgb='FFFF0000')),
+    )
+    ws.conditional_formatting.add('A1:A10', rule)
+    wb.save(src)
+
+    out = tmp_path / 'out_font.xlsx'
+    write_xlsx(read_xlsx(src), out)
+    s = read_xlsx(out).sheet('S')
+
+    cf = s.conditional_formats[0]
+    assert isinstance(cf, CellIsRule)
+    assert cf.style is not None
+    assert cf.style.font_bold is True
+    assert cf.style.font_color in ('FFFF0000', 'FFFF0000')

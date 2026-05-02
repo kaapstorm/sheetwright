@@ -163,15 +163,18 @@ def _cf_to_dict(cf: ConditionalFormat) -> Dict[str, Any]:
     elif isinstance(cf, ColorScaleRule):
         out['kind'] = 'color_scale'
         out['start_type'] = cf.start_type
-        out['start_color'] = cf.start_color
+        if cf.start_color is not None:
+            out['start_color'] = cf.start_color
         out['end_type'] = cf.end_type
-        out['end_color'] = cf.end_color
+        if cf.end_color is not None:
+            out['end_color'] = cf.end_color
         if cf.start_value is not None:
             out['start_value'] = cf.start_value
         if cf.mid_type is not None:
             out['mid_type'] = cf.mid_type
             out['mid_value'] = cf.mid_value
-            out['mid_color'] = cf.mid_color
+            if cf.mid_color is not None:
+                out['mid_color'] = cf.mid_color
         if cf.end_value is not None:
             out['end_value'] = cf.end_value
     elif isinstance(cf, DataBarRule):
@@ -219,13 +222,13 @@ def _cf_from_dict(d: Dict[str, Any]) -> ConditionalFormat:
             **common,  # type: ignore[arg-type]
             start_type=str(d.get('start_type', 'min')),
             start_value=d.get('start_value'),
-            start_color=str(d.get('start_color', 'FFFFFFFF')),
+            start_color=d.get('start_color'),
             mid_type=d.get('mid_type'),
             mid_value=d.get('mid_value'),
             mid_color=d.get('mid_color'),
             end_type=str(d.get('end_type', 'max')),
             end_value=d.get('end_value'),
-            end_color=str(d.get('end_color', 'FF000000')),
+            end_color=d.get('end_color'),
         )
     if kind == 'data_bar':
         return DataBarRule(

@@ -11,14 +11,12 @@ from __future__ import annotations
 from typing import Optional, Tuple
 
 from openpyxl.formatting.rule import (
-    CellIsRule as XCellIsRule,
     ColorScaleRule as XColorScaleRule,
     DataBarRule as XDataBarRule,
-    FormulaRule as XFormulaRule,
     IconSetRule as XIconSetRule,
     Rule,
 )
-from openpyxl.styles import PatternFill
+from openpyxl.styles import Color, Font as XFont, PatternFill
 from openpyxl.styles.differential import DifferentialStyle
 
 from claudesheets.model.conditional import (
@@ -69,22 +67,22 @@ def cf_from_openpyxl_rule(
                 **common,  # type: ignore[arg-type]
                 start_type=cfvo[0].type,
                 start_value=_str_or_none(cfvo[0].val),
-                start_color=_at(colors, 0, 'FFFFFFFF'),
+                start_color=_at(colors, 0),
                 mid_type=cfvo[1].type,
                 mid_value=_str_or_none(cfvo[1].val),
                 mid_color=_at(colors, 1),
                 end_type=cfvo[2].type,
                 end_value=_str_or_none(cfvo[2].val),
-                end_color=_at(colors, 2, 'FF000000'),
+                end_color=_at(colors, 2),
             )
         return ColorScaleRule(
             **common,  # type: ignore[arg-type]
             start_type=cfvo[0].type if cfvo else 'min',
             start_value=_str_or_none(cfvo[0].val) if cfvo else None,
-            start_color=_at(colors, 0, 'FFFFFFFF'),
+            start_color=_at(colors, 0),
             end_type=cfvo[1].type if len(cfvo) > 1 else 'max',
             end_value=(_str_or_none(cfvo[1].val) if len(cfvo) > 1 else None),
-            end_color=_at(colors, 1, 'FF000000'),
+            end_color=_at(colors, 1),
         )
     if rule.type == 'dataBar' and rule.dataBar is not None:
         db = rule.dataBar
@@ -95,7 +93,7 @@ def cf_from_openpyxl_rule(
             start_value=_str_or_none(cfvo[0].val) if cfvo else None,
             end_type=cfvo[1].type if len(cfvo) > 1 else 'max',
             end_value=(_str_or_none(cfvo[1].val) if len(cfvo) > 1 else None),
-            color=_color_value(db.color) if db.color else 'FF638EC6',
+            color=(_color_value(db.color) or 'FF638EC6'),
             show_value=(
                 bool(db.showValue) if db.showValue is not None else True
             ),
@@ -116,29 +114,31 @@ def cf_from_openpyxl_rule(
 
 def cf_to_openpyxl_rule(cf: ConditionalFormat) -> Rule:
     if isinstance(cf, CellIsRule):
-        return XCellIsRule(
-            operator=cf.operator,
+        return Rule(
+            type='cellIs',
+            operator=cf.operator,  # type: ignore[arg-type]
             formula=list(cf.formula),
-            fill=_fill_from_style(cf.style),
+            dxf=_dxf_from_style(cf.style),
             stopIfTrue=cf.stop_if_true,
         )
     if isinstance(cf, FormulaRule):
-        return XFormulaRule(
+        return Rule(
+            type='expression',
             formula=[cf.formula] if cf.formula else [],
-            fill=_fill_from_style(cf.style),
+            dxf=_dxf_from_style(cf.style),
             stopIfTrue=cf.stop_if_true,
         )
     if isinstance(cf, ColorScaleRule):
         return XColorScaleRule(
             start_type=cf.start_type,
             start_value=cf.start_value,
-            start_color=cf.start_color,
+            start_color=cf.start_color or 'FFFFFFFF',
             mid_type=cf.mid_type,
             mid_value=cf.mid_value,
             mid_color=cf.mid_color,
             end_type=cf.end_type,
             end_value=cf.end_value,
-            end_color=cf.end_color,
+            end_color=cf.end_color or 'FF000000',
         )
     if isinstance(cf, DataBarRule):
         return XDataBarRule(
@@ -184,15 +184,32 @@ def _style_from_dxf(dxf: DifferentialStyle) -> Optional[CFStyle]:
     )
 
 
-def _fill_from_style(style: Optional[CFStyle]) -> Optional[PatternFill]:
-    if style is None or not style.fill_color:
+def _dxf_from_style(
+    style: Optional[CFStyle],
+) -> Optional[DifferentialStyle]:
+    if style is None:
         return None
-    return PatternFill(fill_type='solid', start_color=style.fill_color)
+    fill = (
+        PatternFill(fill_type='solid', start_color=style.fill_color)
+        if style.fill_color
+        else None
+    )
+    font = None
+    if style.font_bold or style.font_italic or style.font_color:
+        font = XFont(
+            b=style.font_bold or None,
+            i=style.font_italic or None,
+            color=Color(rgb=style.font_color) if style.font_color else None,
+        )
+    if fill is None and font is None:
+        return None
+    return DifferentialStyle(fill=fill, font=font)
 
 
-def _color_value(c: object) -> str:
+def _color_value(c: object) -> Optional[str]:
     """Best-effort extraction of an openpyxl color to a hex string."""
-    return getattr(c, 'value', None) or getattr(c, 'rgb', None) or ''
+    v = getattr(c, 'value', None) or getattr(c, 'rgb', None)
+    return v if isinstance(v, str) and v else None
 
 
 def _str_or_none(v: object) -> Optional[str]:
