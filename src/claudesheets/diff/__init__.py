@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from claudesheets.diff.compute import diff_workbooks
 from claudesheets.diff.model import (
     CellChange,
     FrozenPanesChange,
@@ -18,4 +19,5 @@ __all__ = [
     'PrintAreaChange',
     'SheetDiff',
     'WorkbookDiff',
+    'diff_workbooks',
 ]
