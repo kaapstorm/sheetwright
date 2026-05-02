@@ -31,6 +31,8 @@ written.
   modify type annotations.** Public functions and CLI entry points
   must have type hints; mypy must pass before commit.
 
+`python` must be run using `uv run python ...`
+
 ## Testing
 
 Use [`pytest`](https://docs.pytest.org/) with
