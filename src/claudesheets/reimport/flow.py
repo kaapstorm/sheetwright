@@ -1,7 +1,7 @@
 """Re-import flow: detect, diff, prompt, apply.
 
 Public entry points:
-    do_reimport(project, xlsx, *, archive, flatten, non_interactive)
+    do_reimport(project, xlsx, *, archive, flatten, non_interactive, force)
         - full interactive (or session-staging) flow.
     archive_xlsx(xlsx, project_root)
         - copy the imported xlsx into imports/ with a timestamped name.
@@ -12,6 +12,7 @@ Tasks 10 and 11 add `apply_session` and the uncommitted-source guard.
 from __future__ import annotations
 
 import shutil
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -36,6 +37,25 @@ from claudesheets.xlsx.flatten import (
 from claudesheets.xlsx.reader import read_xlsx
 
 
+def has_uncommitted_changes(project_root: Path) -> bool:
+    """Return True if `sheets/` has uncommitted changes in git.
+
+    Returns False when the directory is not a git repo (we can't tell
+    what's "uncommitted") or when git is unavailable.
+    """
+    if not (project_root / '.git').is_dir():
+        return False
+    proc = subprocess.run(
+        ['git', 'status', '--porcelain', 'sheets/'],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        return False
+    return bool(proc.stdout.strip())
+
+
 def do_reimport(
     project: Project,
     xlsx: Path,
@@ -43,7 +63,14 @@ def do_reimport(
     archive: bool,
     flatten: bool,
     non_interactive: bool,
+    force: bool,
 ) -> None:
+    if has_uncommitted_changes(project.root) and not force:
+        raise click.ClickException(
+            'You have uncommitted changes in sheets/. Commit or stash '
+            'them before importing, or pass --force to discard.'
+        )
+
     extrefs = detect_external_refs(xlsx)
     if extrefs and not flatten:
         raise click.ClickException(

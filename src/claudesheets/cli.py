@@ -53,6 +53,11 @@ def init_cmd(path: str) -> None:
     help='Discard a previously staged re-import.',
 )
 @click.option(
+    '--force',
+    is_flag=True,
+    help='Skip the uncommitted-source guard during re-import.',
+)
+@click.option(
     '--project',
     'project_path',
     type=click.Path(file_okay=False),
@@ -66,6 +71,7 @@ def import_cmd(
     non_interactive: bool,
     apply: bool,
     abort: bool,
+    force: bool,
     project_path: str,
 ) -> None:
     """Read an .xlsx file into source form, or merge updates into an
@@ -80,6 +86,7 @@ def import_cmd(
         non_interactive=non_interactive,
         apply=apply,
         abort=abort,
+        force=force,
     )
 
 

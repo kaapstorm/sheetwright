@@ -28,6 +28,7 @@ def run(
     non_interactive: bool,
     apply: bool,
     abort: bool,
+    force: bool,
 ) -> None:
     project_root = Path(project_path).resolve()
 
@@ -66,6 +67,7 @@ def run(
             archive=archive,
             flatten=flatten,
             non_interactive=non_interactive,
+            force=force,
         )
         return
 
