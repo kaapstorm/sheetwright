@@ -13,13 +13,10 @@ for the design.
 
 ## Status
 
-Plan 2 complete: a swappable calc engine (LibreOffice headless),
-deterministic xlsx builds, content-addressed calc cache, and
-`recalc`, `test`, and `snapshot` commands. The
-`claudesheets.testing.Model` API gives [testsweet](https://github.com/kaapstorm/testsweet)
-tests `set/get/recalc` over a built workbook. Diff/check, conditional
-formatting, comments, and the escape-hatch re-import flow are coming
-in Plans 3–4.
+Plan 3 complete: Tier 2 features (conditional formatting, comments,
+frozen panes, print areas, ListObject tables) round-trip with full
+fidelity through `import → build`. The escape-hatch re-import flow
+and `diff`/`check` commands are coming in Plan 4.
 
 ## Quick reference
 
