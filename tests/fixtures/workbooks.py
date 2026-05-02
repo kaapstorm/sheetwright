@@ -84,3 +84,62 @@ def write_validation_xlsx(path: Path) -> None:
     ws.add_data_validation(dv_range)
 
     wb.save(path)
+
+
+def write_tier2_xlsx(path: Path) -> None:
+    """One workbook exercising frozen panes, print area, comments,
+    conditional formatting, and a ListObject table."""
+    from openpyxl.comments import Comment as XComment
+    from openpyxl.formatting.rule import CellIsRule, ColorScaleRule
+    from openpyxl.styles import PatternFill
+    from openpyxl.worksheet.table import (
+        Table as XTable,
+        TableColumn as XTableColumn,
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'S'
+    ws['A1'], ws['B1'], ws['C1'] = 'Region', 'Q1', 'Q2'
+    ws['A2'], ws['B2'], ws['C2'] = 'North', 100, 200
+    ws['A3'], ws['B3'], ws['C3'] = 'South', 150, 250
+
+    ws.freeze_panes = 'B2'
+    ws.print_area = 'A1:C3'
+    ws['B2'].comment = XComment('Q1 forecast', 'Alice')
+
+    ws.conditional_formatting.add(
+        'B2:C3',
+        CellIsRule(
+            operator='greaterThan',
+            formula=['100'],
+            fill=PatternFill(fill_type='solid', start_color='FF00FF00'),
+        ),
+    )
+    ws.conditional_formatting.add(
+        'B2:C3',
+        ColorScaleRule(
+            start_type='min',
+            start_color='FFFF0000',
+            end_type='max',
+            end_color='FF00FF00',
+        ),
+    )
+
+    cols = [
+        XTableColumn(id=1, name='Region'),
+        XTableColumn(id=2, name='Q1'),
+        XTableColumn(id=3, name='Q2'),
+    ]
+    ws.add_table(
+        XTable(
+            displayName='Sales',
+            name='Sales',
+            ref='A1:C3',
+            headerRowCount=1,
+            totalsRowCount=0,
+            tableColumns=cols,
+        )
+    )
+
+    wb.save(path)
