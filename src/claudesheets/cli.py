@@ -27,17 +27,29 @@ def init_cmd(path: str) -> None:
 @click.argument('xlsx', type=click.Path(exists=True, dir_okay=False))
 @click.option('--archive', is_flag=True, help='Copy the xlsx into imports/.')
 @click.option(
+    '--flatten',
+    is_flag=True,
+    help='Replace external-reference formulas with cached values.',
+)
+@click.option(
     '--project',
     'project_path',
     type=click.Path(file_okay=False),
     default='.',
     help='Path to the claudesheets project.',
 )
-def import_cmd(xlsx: str, archive: bool, project_path: str) -> None:
+def import_cmd(
+    xlsx: str, archive: bool, flatten: bool, project_path: str
+) -> None:
     """Read an .xlsx file into source form."""
     from claudesheets.commands.import_cmd import run
 
-    run(xlsx_path=xlsx, project_path=project_path, archive=archive)
+    run(
+        xlsx_path=xlsx,
+        project_path=project_path,
+        archive=archive,
+        flatten=flatten,
+    )
 
 
 @main.command('build')

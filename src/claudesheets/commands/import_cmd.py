@@ -11,29 +11,20 @@ import click
 from claudesheets.exceptions import ProjectError
 from claudesheets.project import Project
 from claudesheets.source.writer import write_source
+from claudesheets.xlsx.flatten import (
+    detect_external_refs,
+    flatten_external_refs,
+)
 from claudesheets.xlsx.reader import read_xlsx
 
 
-def _detect_external_refs(xlsx_path: Path) -> list[str]:
-    import openpyxl
-
-    src = openpyxl.load_workbook(xlsx_path, data_only=False)
-    found: set[str] = set()
-    for ws in src.worksheets:
-        for row in ws.iter_rows():
-            for c in row:
-                v = c.value
-                if (
-                    isinstance(v, str)
-                    and v.startswith('=')
-                    and '[' in v
-                    and ']' in v
-                ):
-                    found.add(v)
-    return sorted(found)
-
-
-def run(*, xlsx_path: str, project_path: str, archive: bool) -> None:
+def run(
+    *,
+    xlsx_path: str,
+    project_path: str,
+    archive: bool,
+    flatten: bool,
+) -> None:
     xlsx = Path(xlsx_path).resolve()
     project_root = Path(project_path).resolve()
 
@@ -49,15 +40,18 @@ def run(*, xlsx_path: str, project_path: str, archive: bool) -> None:
             'review-first re-import is deferred to a later release.'
         )
 
-    extrefs = _detect_external_refs(xlsx)
-    if extrefs:
+    extrefs = detect_external_refs(xlsx)
+    if extrefs and not flatten:
         raise click.ClickException(
             'Workbook contains external references; '
-            'resolve them in Excel before importing.\n'
+            'pass --flatten to replace them with cached values, '
+            'or resolve them in Excel before importing.\n'
             'First few: ' + ', '.join(extrefs[:3])
         )
 
     wb = read_xlsx(xlsx)
+    if flatten:
+        flatten_external_refs(wb, xlsx)
     write_source(wb, project_root)
 
     if archive:
