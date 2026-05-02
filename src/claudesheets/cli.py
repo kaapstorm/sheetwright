@@ -137,6 +137,21 @@ def diff_cmd(project_path: str, vs: Optional[str]) -> None:
     run(project_path=project_path, vs=vs)
 
 
+@main.command('check')
+@click.option(
+    '--project',
+    'project_path',
+    type=click.Path(file_okay=False),
+    default='.',
+    help='Path to the claudesheets project.',
+)
+def check_cmd(project_path: str) -> None:
+    """Lint dangling refs, missing names, schema mismatches."""
+    from claudesheets.commands.check_cmd import run
+
+    run(project_path=project_path)
+
+
 @main.command(
     'test',
     context_settings={'ignore_unknown_options': True},
