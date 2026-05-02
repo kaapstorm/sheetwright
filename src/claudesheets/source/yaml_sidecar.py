@@ -111,6 +111,9 @@ def dump_yaml(sheet: Sheet) -> str:
     if sheet.column_widths:
         doc['column_widths'] = dict(sheet.column_widths)
 
+    if sheet.frozen_panes:
+        doc['frozen_panes'] = sheet.frozen_panes
+
     if sheet.formats:
         doc['formats'] = {
             fid: _fmt_to_dict(f) for fid, f in sheet.formats.items()
@@ -144,6 +147,9 @@ def load_yaml(sheet: Sheet, text: str) -> None:
 
     for col, w in (doc.get('column_widths') or {}).items():
         sheet.column_widths[col] = float(w)
+
+    if doc.get('frozen_panes'):
+        sheet.frozen_panes = str(doc['frozen_panes'])
 
     for fid, d in (doc.get('formats') or {}).items():
         sheet.formats[fid] = _fmt_from_dict(dict(d))

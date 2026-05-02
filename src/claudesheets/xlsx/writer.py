@@ -159,6 +159,9 @@ def write_xlsx(wb: Workbook, path: Path) -> None:
                 xdv.add(r)
             ws.add_data_validation(xdv)
 
+        if sheet.frozen_panes:
+            ws.freeze_panes = sheet.frozen_panes
+
         for addr, cell in sheet.cells.items():
             xc = ws[addr]
             if cell.formula is not None:

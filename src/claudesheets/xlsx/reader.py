@@ -133,6 +133,7 @@ def read_xlsx(path: Path) -> Workbook:
                 sheet.column_widths[col_letter] = float(dim.width)
         for dv in ws.data_validations.dataValidation:
             sheet.validations.append(_read_validation(dv))
+        sheet.frozen_panes = ws.freeze_panes
         for row in ws.iter_rows():
             for c in row:
                 if not isinstance(c, XCell):
