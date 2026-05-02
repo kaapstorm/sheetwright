@@ -19,7 +19,7 @@ claudesheets takes a different approach: **`.xlsx` is a build artifact, not
 the source of truth.** The source of truth is a directory of text and CSV
 files (with optional cached SQLite for fast queries). Claude Code edits the
 source; a build step compiles it to `.xlsx` and a calc engine evaluates it.
-Tests are pytest. Diffs are git diffs.
+Tests use Testsweet. Diffs are git diffs.
 
 ## Scope
 
@@ -96,7 +96,7 @@ my-model/
 │   ├── panel_data.csv
 │   └── _schema.sql            # optional column types / indexes for built SQLite
 ├── tests/
-│   └── test_*.py              # pytest tests
+│   └── *.py                   # Testsweet tests
 ├── imports/                   # optional, opt-in: archived imported xlsx files
 ├── build/                     # gitignored: built .xlsx
 └── .claudesheets/             # gitignored: built bulk.sqlite, calc cache
@@ -164,7 +164,7 @@ mutator commands. The CLI surface stays coarse so source files are the API.
 ```
 claudesheets build              # compile sources -> build/my-model.xlsx
 claudesheets recalc             # run calc engine, cache calculated values
-claudesheets test [-k pattern]  # run pytest tests
+claudesheets test [-k pattern]  # run Testsweet tests
 claudesheets snapshot [--update]  # golden-file regression of all calculated outputs
 claudesheets diff [--vs xlsx:<path>]  # semantic diff
 claudesheets check              # lint: dangling refs, missing names, schema mismatches
@@ -176,7 +176,7 @@ based on file mtime.
 
 ### Testing model
 
-**Primary path: testsweet.** Tests are plain Python functions decorated
+**Primary path: Testsweet.** Tests are plain Python functions decorated
 with `@test`, with no fixture-injection magic:
 
 ```python
@@ -259,12 +259,12 @@ offering the option to back out to Overwrite or Reject.
 | Command                  | Purpose                                              |
 |--------------------------|------------------------------------------------------|
 | `init [<path>]`          | Scaffold a fresh project                             |
-| `import <xlsx>`          | Initial ingest, or review-first re-import           |
+| `import <xlsx>`          | Initial ingest, or review-first re-import            |
 | `build [--out <path>]`   | Compile sources → `build/<name>.xlsx`                |
 | `recalc`                 | Run calc engine, cache calculated values             |
-| `test [-k <pattern>]`    | Run pytest tests                                     |
+| `test [-k <pattern>]`    | Run Testsweet tests                                  |
 | `snapshot [--update]`    | Golden-file regression                               |
-| `diff [--vs <ref>]`      | Semantic source-vs-source or source-vs-xlsx diff    |
+| `diff [--vs <ref>]`      | Semantic source-vs-source or source-vs-xlsx diff     |
 | `check`                  | Lint: dangling refs, unused names, schema mismatches |
 
 ### MCP server
