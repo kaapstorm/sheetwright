@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional
 from ruamel.yaml import YAML
 
 from claudesheets.model.cell import Cell
+from claudesheets.model.comment import Comment as Cmt
 from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
 from claudesheets.model.validation import DataValidation
 from claudesheets.model.workbook import Sheet
@@ -128,6 +129,12 @@ def dump_yaml(sheet: Sheet) -> str:
     if cell_formats:
         doc['cell_formats'] = cell_formats
 
+    if sheet.comments:
+        doc['comments'] = {
+            addr: {'author': c.author, 'text': c.text}
+            for addr, c in sheet.comments.items()
+        }
+
     if sheet.validations:
         doc['validations'] = [
             {
@@ -169,6 +176,12 @@ def load_yaml(sheet: Sheet, text: str) -> None:
                 formula=existing.formula,
                 format_id=fid,
             ),
+        )
+
+    for addr, d in (doc.get('comments') or {}).items():
+        sheet.comments[addr] = Cmt(
+            author=str(d.get('author', '')),
+            text=str(d.get('text', '')),
         )
 
     for d in doc.get('validations') or []:

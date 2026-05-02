@@ -10,6 +10,7 @@ from typing import Literal, Optional
 
 import openpyxl
 from openpyxl.cell.cell import Cell as XCell
+from openpyxl.comments import Comment as XComment
 from openpyxl.worksheet.datavalidation import DataValidation as XDV
 from openpyxl.styles import (
     Border as XBorder,
@@ -173,6 +174,9 @@ def write_xlsx(wb: Workbook, path: Path) -> None:
                 xc.value = cell.value
             if cell.format_id and cell.format_id in sheet.formats:
                 _apply_format(xc, sheet.formats[cell.format_id])
+            if addr in sheet.comments:
+                cmt = sheet.comments[addr]
+                ws[addr].comment = XComment(cmt.text, cmt.author)
 
     for nr in wb.named_ranges:
         defn = DefinedName(name=nr.name, attr_text=nr.ref)

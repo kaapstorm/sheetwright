@@ -12,6 +12,7 @@ from openpyxl.cell.cell import Cell as XCell
 from openpyxl.worksheet.datavalidation import DataValidation as XDV
 
 from claudesheets.model.cell import Cell
+from claudesheets.model.comment import Comment as Cmt
 from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
 from claudesheets.model.validation import DataValidation
 from claudesheets.model.workbook import NamedRange, Sheet, Workbook
@@ -173,6 +174,11 @@ def read_xlsx(path: Path) -> Workbook:
                     sheet.set(
                         c.coordinate,
                         Cell(value=c.value, format_id=fmt_id),  # type: ignore[arg-type]
+                    )
+                if c.comment is not None:
+                    sheet.comments[c.coordinate] = Cmt(
+                        author=c.comment.author or '',
+                        text=c.comment.text or '',
                     )
         wb.sheets.append(sheet)
 
