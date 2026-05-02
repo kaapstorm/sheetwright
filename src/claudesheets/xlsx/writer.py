@@ -166,6 +166,13 @@ def write_xlsx(wb: Workbook, path: Path) -> None:
         if sheet.print_area:
             ws.print_area = sheet.print_area
 
+        from claudesheets.xlsx.cf_translate import cf_to_openpyxl_rule
+
+        for cf in sheet.conditional_formats:
+            xrule = cf_to_openpyxl_rule(cf)
+            for r in cf.ranges:
+                ws.conditional_formatting.add(r, xrule)
+
         for addr, cell in sheet.cells.items():
             xc = ws[addr]
             if cell.formula is not None:

@@ -17,6 +17,15 @@ from ruamel.yaml import YAML
 
 from claudesheets.model.cell import Cell
 from claudesheets.model.comment import Comment as Cmt
+from claudesheets.model.conditional import (
+    CellIsRule,
+    CFStyle,
+    ColorScaleRule,
+    ConditionalFormat,
+    DataBarRule,
+    FormulaRule,
+    IconSetRule,
+)
 from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
 from claudesheets.model.validation import DataValidation
 from claudesheets.model.workbook import Sheet
@@ -106,6 +115,137 @@ def _fmt_from_dict(d: Dict[str, Any]) -> CellFormat:
     )
 
 
+def _cfstyle_to_dict(s: CFStyle) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    if s.fill_color:
+        out['fill_color'] = s.fill_color
+    if s.font_bold:
+        out['font_bold'] = True
+    if s.font_italic:
+        out['font_italic'] = True
+    if s.font_color:
+        out['font_color'] = s.font_color
+    return out
+
+
+def _cfstyle_from_dict(
+    d: Optional[Dict[str, Any]],
+) -> Optional[CFStyle]:
+    if not d:
+        return None
+    return CFStyle(
+        fill_color=d.get('fill_color'),
+        font_bold=bool(d.get('font_bold', False)),
+        font_italic=bool(d.get('font_italic', False)),
+        font_color=d.get('font_color'),
+    )
+
+
+def _cf_to_dict(cf: ConditionalFormat) -> Dict[str, Any]:
+    out: Dict[str, Any] = {'ranges': list(cf.ranges)}
+    if cf.priority is not None:
+        out['priority'] = cf.priority
+    if cf.stop_if_true:
+        out['stop_if_true'] = True
+
+    if isinstance(cf, CellIsRule):
+        out['kind'] = 'cell_is'
+        out['operator'] = cf.operator
+        out['formula'] = list(cf.formula)
+        if cf.style is not None:
+            out['style'] = _cfstyle_to_dict(cf.style)
+    elif isinstance(cf, FormulaRule):
+        out['kind'] = 'formula'
+        out['formula'] = cf.formula
+        if cf.style is not None:
+            out['style'] = _cfstyle_to_dict(cf.style)
+    elif isinstance(cf, ColorScaleRule):
+        out['kind'] = 'color_scale'
+        out['start_type'] = cf.start_type
+        out['start_color'] = cf.start_color
+        out['end_type'] = cf.end_type
+        out['end_color'] = cf.end_color
+        if cf.start_value is not None:
+            out['start_value'] = cf.start_value
+        if cf.mid_type is not None:
+            out['mid_type'] = cf.mid_type
+            out['mid_value'] = cf.mid_value
+            out['mid_color'] = cf.mid_color
+        if cf.end_value is not None:
+            out['end_value'] = cf.end_value
+    elif isinstance(cf, DataBarRule):
+        out['kind'] = 'data_bar'
+        out['start_type'] = cf.start_type
+        out['end_type'] = cf.end_type
+        out['color'] = cf.color
+        if cf.start_value is not None:
+            out['start_value'] = cf.start_value
+        if cf.end_value is not None:
+            out['end_value'] = cf.end_value
+        out['show_value'] = cf.show_value
+    elif isinstance(cf, IconSetRule):
+        out['kind'] = 'icon_set'
+        out['icon_style'] = cf.icon_style
+        out['type'] = cf.type
+        out['values'] = list(cf.values)
+    else:
+        raise TypeError(f'unknown ConditionalFormat type: {type(cf).__name__}')
+    return out
+
+
+def _cf_from_dict(d: Dict[str, Any]) -> ConditionalFormat:
+    kind = d.get('kind', 'cell_is')
+    common = {
+        'ranges': tuple(d.get('ranges') or ()),
+        'priority': d.get('priority'),
+        'stop_if_true': bool(d.get('stop_if_true', False)),
+    }
+    if kind == 'cell_is':
+        return CellIsRule(
+            **common,  # type: ignore[arg-type]
+            operator=str(d.get('operator', 'equal')),
+            formula=tuple(d.get('formula') or ()),
+            style=_cfstyle_from_dict(d.get('style')),
+        )
+    if kind == 'formula':
+        return FormulaRule(
+            **common,  # type: ignore[arg-type]
+            formula=str(d.get('formula', '')),
+            style=_cfstyle_from_dict(d.get('style')),
+        )
+    if kind == 'color_scale':
+        return ColorScaleRule(
+            **common,  # type: ignore[arg-type]
+            start_type=str(d.get('start_type', 'min')),
+            start_value=d.get('start_value'),
+            start_color=str(d.get('start_color', 'FFFFFFFF')),
+            mid_type=d.get('mid_type'),
+            mid_value=d.get('mid_value'),
+            mid_color=d.get('mid_color'),
+            end_type=str(d.get('end_type', 'max')),
+            end_value=d.get('end_value'),
+            end_color=str(d.get('end_color', 'FF000000')),
+        )
+    if kind == 'data_bar':
+        return DataBarRule(
+            **common,  # type: ignore[arg-type]
+            start_type=str(d.get('start_type', 'min')),
+            start_value=d.get('start_value'),
+            end_type=str(d.get('end_type', 'max')),
+            end_value=d.get('end_value'),
+            color=str(d.get('color', 'FF638EC6')),
+            show_value=bool(d.get('show_value', True)),
+        )
+    if kind == 'icon_set':
+        return IconSetRule(
+            **common,  # type: ignore[arg-type]
+            icon_style=str(d.get('icon_style', '3TrafficLights1')),
+            type=str(d.get('type', 'percent')),
+            values=tuple(d.get('values') or ()),
+        )
+    raise ValueError(f'unknown CF kind in YAML: {kind!r}')
+
+
 def dump_yaml(sheet: Sheet) -> str:
     doc: Dict[str, Any] = {}
 
@@ -134,6 +274,11 @@ def dump_yaml(sheet: Sheet) -> str:
             addr: {'author': c.author, 'text': c.text}
             for addr, c in sheet.comments.items()
         }
+
+    if sheet.conditional_formats:
+        doc['conditional_formats'] = [
+            _cf_to_dict(cf) for cf in sheet.conditional_formats
+        ]
 
     if sheet.validations:
         doc['validations'] = [
@@ -183,6 +328,9 @@ def load_yaml(sheet: Sheet, text: str) -> None:
             author=str(d.get('author', '')),
             text=str(d.get('text', '')),
         )
+
+    for d in doc.get('conditional_formats') or []:
+        sheet.conditional_formats.append(_cf_from_dict(dict(d)))
 
     for d in doc.get('validations') or []:
         sheet.validations.append(

@@ -180,6 +180,15 @@ def read_xlsx(path: Path) -> Workbook:
                         author=c.comment.author or '',
                         text=c.comment.text or '',
                     )
+
+        from claudesheets.xlsx.cf_translate import cf_from_openpyxl_rule
+
+        for item in ws.conditional_formatting:
+            ranges = tuple(str(r) for r in item.sqref.ranges)
+            for rule in item.rules:
+                sheet.conditional_formats.append(
+                    cf_from_openpyxl_rule(ranges, rule)
+                )
         wb.sheets.append(sheet)
 
     for name, defn in src.defined_names.items():
