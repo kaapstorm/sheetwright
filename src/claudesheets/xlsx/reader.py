@@ -14,6 +14,7 @@ from openpyxl.worksheet.datavalidation import DataValidation as XDV
 from claudesheets.model.cell import Cell
 from claudesheets.model.comment import Comment as Cmt
 from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
+from claudesheets.model.table import ListTable, ListTableColumn
 from claudesheets.model.validation import DataValidation
 from claudesheets.model.workbook import NamedRange, Sheet, Workbook
 
@@ -147,6 +148,32 @@ def read_xlsx(path: Path) -> Workbook:
             sheet.validations.append(_read_validation(dv))
         sheet.frozen_panes = ws.freeze_panes
         sheet.print_area = _strip_sheet_prefix_and_dollars(ws.print_area)
+        for tbl in ws.tables.values():
+            cols = tuple(
+                ListTableColumn(
+                    name=tc.name,
+                    formula=tc.calculatedColumnFormula,
+                    totals_label=tc.totalsRowLabel,
+                    totals_function=tc.totalsRowFunction,
+                )
+                for tc in (tbl.tableColumns or [])
+            )
+            sheet.tables.append(
+                ListTable(
+                    name=tbl.displayName,
+                    ref=tbl.ref,
+                    header_row_count=(
+                        tbl.headerRowCount
+                        if tbl.headerRowCount is not None
+                        else 1
+                    ),
+                    totals_row_count=tbl.totalsRowCount or 0,
+                    columns=cols,
+                    style=(
+                        tbl.tableStyleInfo.name if tbl.tableStyleInfo else None
+                    ),
+                )
+            )
         for row in ws.iter_rows():
             for c in row:
                 if not isinstance(c, XCell):

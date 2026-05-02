@@ -12,6 +12,11 @@ import openpyxl
 from openpyxl.cell.cell import Cell as XCell
 from openpyxl.comments import Comment as XComment
 from openpyxl.worksheet.datavalidation import DataValidation as XDV
+from openpyxl.worksheet.table import (
+    Table as XTable,
+    TableColumn as XTableColumn,
+    TableStyleInfo as XTableStyleInfo,
+)
 from openpyxl.styles import (
     Border as XBorder,
     Color,
@@ -165,6 +170,29 @@ def write_xlsx(wb: Workbook, path: Path) -> None:
 
         if sheet.print_area:
             ws.print_area = sheet.print_area
+
+        for t in sheet.tables:
+            xcols = [
+                XTableColumn(
+                    id=i + 1,
+                    name=c.name,
+                    calculatedColumnFormula=c.formula,  # type: ignore[arg-type]
+                    totalsRowLabel=c.totals_label,
+                    totalsRowFunction=c.totals_function,  # type: ignore[arg-type]
+                )
+                for i, c in enumerate(t.columns)
+            ]
+            xt = XTable(
+                displayName=t.name,
+                name=t.name,
+                ref=t.ref,
+                headerRowCount=t.header_row_count,
+                totalsRowCount=t.totals_row_count,
+                tableColumns=xcols,
+            )
+            if t.style:
+                xt.tableStyleInfo = XTableStyleInfo(name=t.style)
+            ws.add_table(xt)
 
         from claudesheets.xlsx.cf_translate import cf_to_openpyxl_rule
 

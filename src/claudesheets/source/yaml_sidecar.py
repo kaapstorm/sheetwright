@@ -27,6 +27,7 @@ from claudesheets.model.conditional import (
     IconSetRule,
 )
 from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
+from claudesheets.model.table import ListTable, ListTableColumn
 from claudesheets.model.validation import DataValidation
 from claudesheets.model.workbook import Sheet
 
@@ -280,6 +281,43 @@ def dump_yaml(sheet: Sheet) -> str:
             _cf_to_dict(cf) for cf in sheet.conditional_formats
         ]
 
+    if sheet.tables:
+        doc['tables'] = [
+            {
+                'name': t.name,
+                'ref': t.ref,
+                **(
+                    {'header_row_count': t.header_row_count}
+                    if t.header_row_count != 1
+                    else {}
+                ),
+                **(
+                    {'totals_row_count': t.totals_row_count}
+                    if t.totals_row_count
+                    else {}
+                ),
+                'columns': [
+                    {
+                        'name': c.name,
+                        **({'formula': c.formula} if c.formula else {}),
+                        **(
+                            {'totals_label': c.totals_label}
+                            if c.totals_label
+                            else {}
+                        ),
+                        **(
+                            {'totals_function': c.totals_function}
+                            if c.totals_function
+                            else {}
+                        ),
+                    }
+                    for c in t.columns
+                ],
+                **({'style': t.style} if t.style else {}),
+            }
+            for t in sheet.tables
+        ]
+
     if sheet.validations:
         doc['validations'] = [
             {
@@ -331,6 +369,27 @@ def load_yaml(sheet: Sheet, text: str) -> None:
 
     for d in doc.get('conditional_formats') or []:
         sheet.conditional_formats.append(_cf_from_dict(dict(d)))
+
+    for d in doc.get('tables') or []:
+        cols = tuple(
+            ListTableColumn(
+                name=str(c['name']),
+                formula=c.get('formula'),
+                totals_label=c.get('totals_label'),
+                totals_function=c.get('totals_function'),
+            )
+            for c in (d.get('columns') or [])
+        )
+        sheet.tables.append(
+            ListTable(
+                name=str(d['name']),
+                ref=str(d['ref']),
+                header_row_count=int(d.get('header_row_count', 1)),
+                totals_row_count=int(d.get('totals_row_count', 0)),
+                columns=cols,
+                style=d.get('style'),
+            )
+        )
 
     for d in doc.get('validations') or []:
         sheet.validations.append(
