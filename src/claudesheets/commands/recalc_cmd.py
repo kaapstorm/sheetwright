@@ -26,6 +26,10 @@ def run(*, project_path: str, force: bool) -> None:
     except ProjectError as e:
         raise click.ClickException(str(e))
 
+    from claudesheets.external_edit import warn_if_externally_edited
+
+    warn_if_externally_edited(project)
+
     cfg = load_project(project.claudesheets_toml.read_text())
     built = project.build_dir / f'{cfg.name}.xlsx'
     if not built.is_file():
