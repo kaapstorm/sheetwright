@@ -16,32 +16,42 @@ from claudesheets.diff.model import (
 from claudesheets.model.workbook import Sheet, Workbook
 
 
-def diff_workbooks(a: Workbook, b: Workbook) -> WorkbookDiff:
-    a_sheets = {s.name: s for s in a.sheets}
-    b_sheets = {s.name: s for s in b.sheets}
+def diff_workbooks(old: Workbook, new: Workbook) -> WorkbookDiff:
+    """Return the structural diff from `old` to `new`.
 
-    sheets_added = tuple(sorted(set(b_sheets) - set(a_sheets)))
-    sheets_removed = tuple(sorted(set(a_sheets) - set(b_sheets)))
-    common_sheet_names = sorted(set(a_sheets) & set(b_sheets))
+    Conventions:
+    - `cells_added` lists cells that exist in `new` but not `old`.
+    - `cells_removed` lists cells that exist in `old` but not `new`.
+    - `cells_changed` carries `old_value`/`new_value` from the
+      respective sides.
+
+    All callers must pass arguments in this direction.
+    """
+    old_sheets = {s.name: s for s in old.sheets}
+    new_sheets = {s.name: s for s in new.sheets}
+
+    sheets_added = tuple(sorted(set(new_sheets) - set(old_sheets)))
+    sheets_removed = tuple(sorted(set(old_sheets) - set(new_sheets)))
+    common_sheet_names = sorted(set(old_sheets) & set(new_sheets))
 
     sheet_diffs = []
     for name in common_sheet_names:
-        sd = _diff_sheet(a_sheets[name], b_sheets[name])
+        sd = _diff_sheet(old_sheets[name], new_sheets[name])
         if not _sheet_diff_is_empty(sd):
             sheet_diffs.append(sd)
 
-    a_nr = {nr.name: nr for nr in a.named_ranges}
-    b_nr = {nr.name: nr for nr in b.named_ranges}
-    nr_added = tuple(sorted(set(b_nr) - set(a_nr)))
-    nr_removed = tuple(sorted(set(a_nr) - set(b_nr)))
+    old_nr = {nr.name: nr for nr in old.named_ranges}
+    new_nr = {nr.name: nr for nr in new.named_ranges}
+    nr_added = tuple(sorted(set(new_nr) - set(old_nr)))
+    nr_removed = tuple(sorted(set(old_nr) - set(new_nr)))
     nr_changed = []
-    for name in sorted(set(a_nr) & set(b_nr)):
-        if a_nr[name].ref != b_nr[name].ref:
+    for name in sorted(set(old_nr) & set(new_nr)):
+        if old_nr[name].ref != new_nr[name].ref:
             nr_changed.append(
                 NamedRangeChange(
                     name=name,
-                    old_ref=a_nr[name].ref,
-                    new_ref=b_nr[name].ref,
+                    old_ref=old_nr[name].ref,
+                    new_ref=new_nr[name].ref,
                 )
             )
 
@@ -55,63 +65,63 @@ def diff_workbooks(a: Workbook, b: Workbook) -> WorkbookDiff:
     )
 
 
-def _diff_sheet(a: Sheet, b: Sheet) -> SheetDiff:
-    a_cells = a.cells
-    b_cells = b.cells
-    cells_added = tuple(sorted(set(b_cells) - set(a_cells)))
-    cells_removed = tuple(sorted(set(a_cells) - set(b_cells)))
+def _diff_sheet(old: Sheet, new: Sheet) -> SheetDiff:
+    old_cells = old.cells
+    new_cells = new.cells
+    cells_added = tuple(sorted(set(new_cells) - set(old_cells)))
+    cells_removed = tuple(sorted(set(old_cells) - set(new_cells)))
     cells_changed: List[CellChange] = []
-    for addr in sorted(set(a_cells) & set(b_cells)):
-        ca, cb = a_cells[addr], b_cells[addr]
-        if ca.value != cb.value or ca.formula != cb.formula:
+    for addr in sorted(set(old_cells) & set(new_cells)):
+        co, cn = old_cells[addr], new_cells[addr]
+        if co.value != cn.value or co.formula != cn.formula:
             cells_changed.append(
                 CellChange(
-                    sheet=a.name,
+                    sheet=old.name,
                     addr=addr,
-                    old_value=ca.value,
-                    new_value=cb.value,
-                    old_formula=ca.formula,
-                    new_formula=cb.formula,
+                    old_value=co.value,
+                    new_value=cn.value,
+                    old_formula=co.formula,
+                    new_formula=cn.formula,
                 )
             )
 
     cw_changed: Dict[str, Tuple[Optional[float], Optional[float]]] = {}
-    for col in sorted(set(a.column_widths) | set(b.column_widths)):
-        old = a.column_widths.get(col)
-        new = b.column_widths.get(col)
-        if old != new:
-            cw_changed[col] = (old, new)
+    for col in sorted(set(old.column_widths) | set(new.column_widths)):
+        old_w = old.column_widths.get(col)
+        new_w = new.column_widths.get(col)
+        if old_w != new_w:
+            cw_changed[col] = (old_w, new_w)
 
     fp_change = (
-        FrozenPanesChange(old=a.frozen_panes, new=b.frozen_panes)
-        if a.frozen_panes != b.frozen_panes
+        FrozenPanesChange(old=old.frozen_panes, new=new.frozen_panes)
+        if old.frozen_panes != new.frozen_panes
         else None
     )
     pa_change = (
-        PrintAreaChange(old=a.print_area, new=b.print_area)
-        if a.print_area != b.print_area
+        PrintAreaChange(old=old.print_area, new=new.print_area)
+        if old.print_area != new.print_area
         else None
     )
 
-    a_cmts = a.comments
-    b_cmts = b.comments
-    comments_added = tuple(sorted(set(b_cmts) - set(a_cmts)))
-    comments_removed = tuple(sorted(set(a_cmts) - set(b_cmts)))
+    old_cmts = old.comments
+    new_cmts = new.comments
+    comments_added = tuple(sorted(set(new_cmts) - set(old_cmts)))
+    comments_removed = tuple(sorted(set(old_cmts) - set(new_cmts)))
     comments_changed = tuple(
         sorted(
             addr
-            for addr in set(a_cmts) & set(b_cmts)
-            if a_cmts[addr] != b_cmts[addr]
+            for addr in set(old_cmts) & set(new_cmts)
+            if old_cmts[addr] != new_cmts[addr]
         )
     )
 
-    formats_changed = _format_diff(a, b)
+    formats_changed = _format_diff(old, new)
 
-    cf_changed = list(a.conditional_formats) != list(b.conditional_formats)
-    tables_changed = list(a.tables) != list(b.tables)
+    cf_changed = list(old.conditional_formats) != list(new.conditional_formats)
+    tables_changed = list(old.tables) != list(new.tables)
 
     return SheetDiff(
-        name=a.name,
+        name=old.name,
         cells_added=cells_added,
         cells_removed=cells_removed,
         cells_changed=tuple(cells_changed),
@@ -127,20 +137,29 @@ def _diff_sheet(a: Sheet, b: Sheet) -> SheetDiff:
     )
 
 
-def _format_diff(a: Sheet, b: Sheet) -> Tuple[str, ...]:
+def _format_diff(old: Sheet, new: Sheet) -> Tuple[str, ...]:
     """Return the cell addresses whose effective format differs.
 
     Format ids may differ between workbooks even when the format
     content is identical, so we resolve through `formats[id]` and
     compare structurally.
+
+    Cells that exist only on one side are not included here; their
+    addition/removal is captured by `cells_added`/`cells_removed`,
+    which subsumes any format change. This means a "newly added cell
+    with non-default format" appears once (as added), not twice.
     """
     addrs: List[str] = []
-    common = set(a.cells) & set(b.cells)
+    common = set(old.cells) & set(new.cells)
     for addr in sorted(common):
-        a_cell = a.cells[addr]
-        b_cell = b.cells[addr]
-        a_fmt = a.formats.get(a_cell.format_id) if a_cell.format_id else None
-        b_fmt = b.formats.get(b_cell.format_id) if b_cell.format_id else None
-        if a_fmt != b_fmt:
+        old_cell = old.cells[addr]
+        new_cell = new.cells[addr]
+        old_fmt = (
+            old.formats.get(old_cell.format_id) if old_cell.format_id else None
+        )
+        new_fmt = (
+            new.formats.get(new_cell.format_id) if new_cell.format_id else None
+        )
+        if old_fmt != new_fmt:
             addrs.append(addr)
     return tuple(addrs)

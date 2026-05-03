@@ -69,6 +69,21 @@ def test_abort_clears_session_and_does_not_change_source():
 
 
 @use(staged_project)
+def test_apply_refuses_when_staged_xlsx_modified():
+    p = staged_project()
+    import json
+
+    sess = json.loads((p / '.claudesheets' / 'reimport.json').read_text())
+    staged_xlsx = Path(sess['xlsx_path'])
+    staged_xlsx.write_bytes(staged_xlsx.read_bytes() + b' ')
+
+    runner = CliRunner()
+    r = runner.invoke(main, ['import', '--apply', '--project', str(p)])
+    assert r.exit_code != 0
+    assert 'modified' in r.output.lower() or 're-stage' in r.output.lower()
+
+
+@use(staged_project)
 def test_apply_without_session_errors():
     p = staged_project()
     runner = CliRunner()

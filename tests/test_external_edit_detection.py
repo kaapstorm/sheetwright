@@ -61,13 +61,8 @@ def test_no_warning_when_no_record_yet(tmp_path: Path):
 
 
 @use(built)
-def test_no_warning_when_workbook_renamed_orphans_hash():
-    """User edits claudesheets.toml.name; build/<old>.xlsx is orphaned.
-
-    The recorded hash points at a path that no longer exists. The
-    detector treats that as 'no current build' and stays silent — no
-    spurious warning.
-    """
+def test_warn_when_workbook_renamed_orphans_hash():
+    """Renaming claudesheets.toml.name should emit an orphan note."""
     p = built()
     cs_toml = p / 'claudesheets.toml'
     cs_toml.write_text(
@@ -75,4 +70,4 @@ def test_no_warning_when_workbook_renamed_orphans_hash():
     )
     runner = CliRunner()
     r = runner.invoke(main, ['snapshot', '--project', str(p)])
-    assert 'modified externally' not in r.output
+    assert 'orphaned' in r.output.lower() or 'orphan' in r.output.lower()

@@ -65,6 +65,13 @@ def do_reimport(
     non_interactive: bool,
     force: bool,
 ) -> None:
+    """Run the re-import flow against an already-populated source.
+
+    `force=True` skips the uncommitted-source guard ONLY. It does NOT
+    bypass the external-reference check (use `--flatten` for that),
+    nor does it auto-overwrite without prompting; the user still
+    chooses Merge / Overwrite / Reject (or stages with -I).
+    """
     if has_uncommitted_changes(project.root) and not force:
         raise click.ClickException(
             'You have uncommitted changes in sheets/. Commit or stash '
@@ -141,6 +148,15 @@ def apply_session(project: Project, *, archive: bool, flatten: bool) -> None:
     if not xlsx.is_file():
         raise click.ClickException(
             f'Staged xlsx no longer exists at {xlsx}. Re-stage with -I.'
+        )
+
+    current_hash = hash_xlsx(xlsx)
+    if current_hash != session.xlsx_sha256:
+        raise click.ClickException(
+            f'Staged xlsx at {xlsx} has been modified since `-I` ('
+            f'recorded hash {session.xlsx_sha256[:12]}, current '
+            f'{current_hash[:12]}). Re-stage with `-I` to see the new '
+            f'diff.'
         )
 
     new_wb = read_xlsx(xlsx)

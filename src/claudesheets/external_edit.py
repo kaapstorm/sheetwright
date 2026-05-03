@@ -21,6 +21,17 @@ def warn_if_externally_edited(project: Project) -> None:
     if rec is None:
         return
     cfg = load_project(project.claudesheets_toml.read_text())
+
+    if rec.name != cfg.name:
+        click.echo(
+            f'NOTE: recorded build was for workbook {rec.name!r}; '
+            f'current workbook is {cfg.name!r}. The previous build at '
+            f'build/{rec.name}.xlsx is orphaned. '
+            f'Run `claudesheets build` to refresh the hash record.',
+            err=True,
+        )
+        return
+
     built = project.build_dir / f'{cfg.name}.xlsx'
     if not built.is_file():
         return
