@@ -13,10 +13,10 @@ for the design.
 
 ## Status
 
-Plan 3 complete: Tier 2 features (conditional formatting, comments,
-frozen panes, print areas, ListObject tables) round-trip with full
-fidelity through `import → build`. The escape-hatch re-import flow
-and `diff`/`check` commands are coming in Plan 4.
+Plan 4 complete: `diff`, `check`, build-hash detection, `--flatten`
+import, and the escape-hatch re-import flow (interactive and `-I`
+non-interactive). The MCP wrapper is the remaining v1 deliverable
+(Plan 5).
 
 ## Quick reference
 
@@ -104,6 +104,43 @@ def revenue_grows_with_assumption():
 
 Run them with `claudesheets test` (in-process testsweet) or directly
 with `python -m testsweet tests/`.
+
+## Working with an externally-edited xlsx
+
+If you (or your colleague) opens `build/<name>.xlsx` in Excel and
+saves changes directly, claudesheets will notice on the next
+command and warn:
+
+    WARNING: build/my-model.xlsx has been modified externally.
+    Run `claudesheets import build/my-model.xlsx` to review changes.
+
+Re-importing into a populated source directory presents a diff and
+asks how to proceed:
+
+    claudesheets import build/my-model.xlsx
+    # (m)erge / (o)verwrite / (r)eject
+
+For non-interactive workflows (CI), use `-I` to stage the diff:
+
+    claudesheets import build/my-model.xlsx -I
+    # ... review the printed diff ...
+    claudesheets import --apply   # accept
+    claudesheets import --abort   # discard
+
+If your `sheets/` directory has uncommitted git changes, re-import
+refuses unless you pass `--force`.
+
+## Diff and check
+
+```bash
+claudesheets diff                        # source vs build/<name>.xlsx
+claudesheets diff --vs xlsx:other.xlsx   # source vs another xlsx
+claudesheets diff --vs source:../other   # source vs another project's source
+claudesheets check                       # lint dangling refs, missing names
+```
+
+`diff` exits 0 when there are no changes, 1 otherwise (CI-friendly).
+`check` exits 0 when there are no issues, 1 otherwise.
 
 ## License
 
