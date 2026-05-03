@@ -13,7 +13,7 @@ from claudesheets.diff.model import SheetDiff, WorkbookDiff
 
 def render(diff: WorkbookDiff) -> str:
     if diff.is_empty():
-        return 'no changes\n'
+        return 'no changes'
 
     buf = StringIO()
 
@@ -38,7 +38,7 @@ def render(diff: WorkbookDiff) -> str:
         for nrc in diff.named_ranges_changed:
             buf.write(f'  * {nrc.name}: {nrc.old_ref} -> {nrc.new_ref}\n')
 
-    return buf.getvalue()
+    return buf.getvalue().rstrip('\n')
 
 
 def _render_sheet(buf: StringIO, sd: SheetDiff) -> None:

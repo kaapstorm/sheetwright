@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -11,6 +9,7 @@ import click
 
 from claudesheets.exceptions import ProjectError
 from claudesheets.project import Project
+from claudesheets.reimport import archive_xlsx
 from claudesheets.source.writer import write_source
 from claudesheets.xlsx.flatten import (
     detect_external_refs,
@@ -86,9 +85,6 @@ def run(
     write_source(wb, project_root)
 
     if archive:
-        imports_dir = project_root / 'imports'
-        imports_dir.mkdir(exist_ok=True)
-        ts = datetime.now().strftime('%Y-%m-%dT%H%M')
-        shutil.copy2(xlsx, imports_dir / f'{ts}.xlsx')
+        archive_xlsx(xlsx, project_root)
 
     click.echo(f'Imported {xlsx} into {project_root}')

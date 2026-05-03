@@ -12,7 +12,6 @@ Tasks 10 and 11 add `apply_session` and the uncommitted-source guard.
 from __future__ import annotations
 
 import shutil
-import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,6 +20,7 @@ import click
 from claudesheets.calc.cache import hash_xlsx
 from claudesheets.diff import diff_workbooks
 from claudesheets.diff.format import render
+from claudesheets.gitutil import has_uncommitted_changes
 from claudesheets.project import Project
 from claudesheets.reimport.session import (
     ReimportSession,
@@ -35,25 +35,6 @@ from claudesheets.xlsx.flatten import (
     flatten_external_refs,
 )
 from claudesheets.xlsx.reader import read_xlsx
-
-
-def has_uncommitted_changes(project_root: Path) -> bool:
-    """Return True if `sheets/` has uncommitted changes in git.
-
-    Returns False when the directory is not a git repo (we can't tell
-    what's "uncommitted") or when git is unavailable.
-    """
-    if not (project_root / '.git').is_dir():
-        return False
-    proc = subprocess.run(
-        ['git', 'status', '--porcelain', 'sheets/'],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-    )
-    if proc.returncode != 0:
-        return False
-    return bool(proc.stdout.strip())
 
 
 def do_reimport(
@@ -92,7 +73,7 @@ def do_reimport(
     current_wb = read_source(project.root)
     diff = diff_workbooks(current_wb, new_wb)
     report = render(diff)
-    click.echo(report, nl=False)
+    click.echo(report)
 
     if diff.is_empty():
         click.echo('Nothing to merge.')

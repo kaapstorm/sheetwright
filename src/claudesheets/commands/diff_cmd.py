@@ -27,8 +27,7 @@ def run(*, project_path: str, vs: Optional[str]) -> None:
     target_wb = _load_target(project, vs)
 
     d = diff_workbooks(target_wb, source_wb)
-    output = render(d)
-    click.echo(output, nl=False)
+    click.echo(render(d))
     if not d.is_empty():
         raise click.exceptions.Exit(1)
 
