@@ -1,18 +1,25 @@
 """Implementation of `claudesheets test` (testsweet, in-process).
 
-We invoke testsweet's `main(argv) -> int` programmatically. testsweet
-saves and restores `sys.path` itself; we additionally save/restore
-`os.getcwd()` because testsweet reads `[tool.testsweet.discovery]`
-config from the cwd's `pyproject.toml`.
+Uses testsweet's lower-level `discover` + `run` API directly so we
+can run user tests without mutating the process's cwd. This matters
+for long-running hosts (the MCP server in particular).
+
+User projects lose support for `[tool.testsweet.discovery]` in their
+`pyproject.toml` via this command — we walk `tests/test_*.py` (and
+honour `targets` if given) and import each file ourselves. Users who
+want `[tool.testsweet.discovery]` can `python -m testsweet` from
+their project root directly.
 """
 
 from __future__ import annotations
 
-import os
+import importlib.util
 import sys
+from pathlib import Path
 from typing import Sequence
 
 import click
+from testsweet import run as ts_run
 
 from claudesheets.exceptions import ProjectError
 from claudesheets.project import Project
@@ -27,33 +34,68 @@ def run(*, project_path: str, targets: Sequence[str]) -> None:
     if not project.tests_dir.is_dir():
         raise click.ClickException(f'no tests/ directory in {project.root}')
 
-    from testsweet.__main__ import main as testsweet_main
+    test_files = list(_resolve_targets(project, list(targets)))
+    if not test_files:
+        click.echo('no tests collected')
+        return
 
-    argv = list(targets) if targets else [str(project.tests_dir)]
-    prev_cwd = os.getcwd()
-    # The host process (e.g. pytest running claudesheets' own tests)
-    # may have a `tests` package cached under that name. The user
-    # project's tests/ would resolve to the same dotted name and
-    # collide. Drop any pre-existing `tests`/`tests.*` modules so
-    # testsweet's importlib lookup finds the project's tree, and
-    # restore them afterwards.
+    saved_path = list(sys.path)
     saved_modules = {
         name: mod
         for name, mod in sys.modules.items()
-        if name == 'tests' or name.startswith('tests.')
+        if name == '_user_tests' or name.startswith('_user_tests.')
     }
-    for name in saved_modules:
-        del sys.modules[name]
+    sys.path.insert(0, str(project.root))
     try:
-        os.chdir(project.root)
-        rc = testsweet_main(argv)
+        any_failure = False
+        for test_file in test_files:
+            module = _import_module(test_file)
+            for name, exc in ts_run(module):
+                full = f'{test_file.relative_to(project.root)}::{name}'
+                if exc is None:
+                    click.echo(f'{full} ... ok')
+                else:
+                    any_failure = True
+                    click.echo(f'{full} ... FAIL: {type(exc).__name__}: {exc}')
     finally:
-        os.chdir(prev_cwd)
+        sys.path[:] = saved_path
+        # Restore any pre-existing _user_tests modules we may have
+        # shadowed; remove ones we created.
         for name in [
-            n for n in sys.modules if n == 'tests' or n.startswith('tests.')
+            n
+            for n in sys.modules
+            if n == '_user_tests' or n.startswith('_user_tests.')
         ]:
             del sys.modules[name]
         sys.modules.update(saved_modules)
 
-    if rc != 0:
-        raise click.exceptions.Exit(rc)
+    if any_failure:
+        raise click.exceptions.Exit(1)
+
+
+def _resolve_targets(project: Project, targets: list[str]) -> list[Path]:
+    """Return the list of test files to run."""
+    if not targets:
+        return sorted(project.tests_dir.rglob('test_*.py'))
+    out = []
+    for t in targets:
+        p = (project.root / t).resolve()
+        if p.is_file():
+            out.append(p)
+        elif p.is_dir():
+            out.extend(sorted(p.rglob('test_*.py')))
+        else:
+            raise click.ClickException(f'no such target: {t}')
+    return out
+
+
+def _import_module(path: Path):
+    """Import a test file under a stable namespace."""
+    name = '_user_tests.' + path.stem
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise click.ClickException(f'cannot import {path}')
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
