@@ -1,17 +1,22 @@
 """Re-import flow: detect, diff, prompt, apply.
 
 Public entry points:
+    stage_reimport(project, xlsx, *, flatten, force) -> StagedReimport
+        - Click-free: validates, computes diff, returns staged result.
+    commit_staged(project, staged, *, archive)
+        - Click-free: writes source from a StagedReimport.
     do_reimport(project, xlsx, *, archive, flatten, non_interactive, force)
-        - full interactive (or session-staging) flow.
+        - thin Click-aware wrapper around the above (prompts + echoes).
+    apply_session(project, *, archive, flatten)
+        - complete a previously-staged -I session.
     archive_xlsx(xlsx, project_root)
         - copy the imported xlsx into imports/ with a timestamped name.
-
-Tasks 10 and 11 add `apply_session` and the uncommitted-source guard.
 """
 
 from __future__ import annotations
 
 import shutil
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,7 +25,9 @@ import click
 from claudesheets.calc.cache import hash_xlsx
 from claudesheets.diff import diff_workbooks
 from claudesheets.diff.format import render
+from claudesheets.diff.model import WorkbookDiff
 from claudesheets.gitutil import has_uncommitted_changes
+from claudesheets.model.workbook import Workbook
 from claudesheets.project import Project
 from claudesheets.reimport.session import (
     ReimportSession,
@@ -37,21 +44,31 @@ from claudesheets.xlsx.flatten import (
 from claudesheets.xlsx.reader import read_xlsx
 
 
-def do_reimport(
+@dataclass(frozen=True)
+class StagedReimport:
+    diff: WorkbookDiff
+    rendered_diff: str
+    new_workbook: Workbook
+    xlsx_path: Path
+    xlsx_sha256: str
+
+
+def stage_reimport(
     project: Project,
     xlsx: Path,
     *,
-    archive: bool,
     flatten: bool,
-    non_interactive: bool,
     force: bool,
-) -> None:
-    """Run the re-import flow against an already-populated source.
+) -> StagedReimport:
+    """Click-free re-import staging.
 
-    `force=True` skips the uncommitted-source guard ONLY. It does NOT
-    bypass the external-reference check (use `--flatten` for that),
-    nor does it auto-overwrite without prompting; the user still
-    chooses Merge / Overwrite / Reject (or stages with -I).
+    Validates the uncommitted-source guard, optionally flattens
+    external refs, computes the diff between the current source and
+    the new xlsx, and returns it. No I/O beyond reading the xlsx.
+
+    Raises `click.ClickException` for user-facing errors (uncommitted
+    changes, external refs without flatten). Callers translate as
+    appropriate (CLI: print and exit; MCP: surface as typed error).
     """
     if has_uncommitted_changes(project.root) and not force:
         raise click.ClickException(
@@ -72,10 +89,46 @@ def do_reimport(
 
     current_wb = read_source(project.root)
     diff = diff_workbooks(current_wb, new_wb)
-    report = render(diff)
-    click.echo(report)
+    rendered = render(diff)
 
-    if diff.is_empty():
+    return StagedReimport(
+        diff=diff,
+        rendered_diff=rendered,
+        new_workbook=new_wb,
+        xlsx_path=Path(xlsx).resolve(),
+        xlsx_sha256=hash_xlsx(xlsx),
+    )
+
+
+def commit_staged(
+    project: Project, staged: StagedReimport, *, archive: bool
+) -> None:
+    """Click-free apply: write source from a StagedReimport."""
+    write_source(staged.new_workbook, project.root)
+    if archive:
+        archive_xlsx(staged.xlsx_path, project.root)
+
+
+def do_reimport(
+    project: Project,
+    xlsx: Path,
+    *,
+    archive: bool,
+    flatten: bool,
+    non_interactive: bool,
+    force: bool,
+) -> None:
+    """Run the re-import flow against an already-populated source.
+
+    `force=True` skips the uncommitted-source guard ONLY. It does NOT
+    bypass the external-reference check (use `--flatten` for that),
+    nor does it auto-overwrite without prompting; the user still
+    chooses Merge / Overwrite / Reject (or stages with -I).
+    """
+    staged = stage_reimport(project, xlsx, flatten=flatten, force=force)
+    click.echo(staged.rendered_diff)
+
+    if staged.diff.is_empty():
         click.echo('Nothing to merge.')
         return
 
@@ -83,9 +136,9 @@ def do_reimport(
         save_session(
             project.reimport_session_path,
             ReimportSession(
-                xlsx_path=str(xlsx),
-                xlsx_sha256=hash_xlsx(xlsx),
-                diff_summary=report,
+                xlsx_path=str(staged.xlsx_path),
+                xlsx_sha256=staged.xlsx_sha256,
+                diff_summary=staged.rendered_diff,
                 created_at=datetime.now(timezone.utc).isoformat(),
             ),
         )
@@ -105,10 +158,8 @@ def do_reimport(
         click.echo('Rejected; source unchanged.')
         return
 
-    write_source(new_wb, project.root)
-    if archive:
-        archive_xlsx(xlsx, project.root)
-    click.echo(f'Source updated from {xlsx}.')
+    commit_staged(project, staged, archive=archive)
+    click.echo(f'Source updated from {staged.xlsx_path}.')
 
 
 def apply_session(project: Project, *, archive: bool, flatten: bool) -> None:
