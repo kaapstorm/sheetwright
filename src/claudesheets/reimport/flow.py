@@ -70,6 +70,12 @@ def stage_reimport(
     changes, external refs without flatten). Callers translate as
     appropriate (CLI: print and exit; MCP: surface as typed error).
     """
+    # Clear any stale session from a previous stage; we'll save a
+    # fresh one only if the new diff is non-empty (callers wrap this).
+    # This prevents an empty-diff re-stage from leaving the old
+    # session intact.
+    clear_session(project.reimport_session_path)
+
     if has_uncommitted_changes(project.root) and not force:
         raise click.ClickException(
             'You have uncommitted changes in sheets/. Commit or stash '

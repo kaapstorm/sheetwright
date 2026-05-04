@@ -42,6 +42,29 @@ def test_classify_no_staged_session():
     assert classify_click_error(e) == 'no_staged_session'
 
 
+def test_classify_no_staged_session_still_works():
+    e = click.ClickException(
+        'No staged re-import session. Run `claudesheets import <xlsx> -I` '
+        'first.'
+    )
+    assert classify_click_error(e) == 'no_staged_session'
+
+
+def test_classify_staged_xlsx_missing():
+    e = click.ClickException(
+        'Staged xlsx no longer exists at /tmp/foo.xlsx. Re-stage with -I.'
+    )
+    assert classify_click_error(e) == 'staged_xlsx_changed'
+
+
+def test_classify_staged_xlsx_modified():
+    e = click.ClickException(
+        'Staged xlsx at /tmp/foo.xlsx has been modified since `-I` '
+        '(recorded hash abc, current def). Re-stage with `-I`.'
+    )
+    assert classify_click_error(e) == 'staged_xlsx_changed'
+
+
 def test_classify_unknown_falls_back():
     e = click.ClickException('something else happened')
     assert classify_click_error(e) == 'click_error'

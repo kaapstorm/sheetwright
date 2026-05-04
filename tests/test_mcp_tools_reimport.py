@@ -92,6 +92,40 @@ def test_reimport_abort_clears_session(tmp_path: Path):
 
 
 @use(populated)
+def test_reimport_stage_then_restage_with_no_changes_clears_session(
+    tmp_path: Path,
+):
+    """C2 regression: a no-changes restage must clear any prior session."""
+    p, src = populated()
+
+    # Stage with a modified xlsx — non-empty diff, session saved.
+    new_src = tmp_path / 'changed.xlsx'
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    s = wb.active
+    s.title = 'Inputs'
+    s['A1'], s['B1'] = 'growth_rate', 0.99
+    s['A2'], s['B2'] = 'base_revenue', 1_000_000
+    s2 = wb.create_sheet('Outputs')
+    s2['A1'] = 'revenue_2027'
+    s2['B1'] = '=Inputs!B2 * (1 + Inputs!B1)'
+    wb.save(new_src)
+
+    do_reimport_stage(
+        xlsx=str(new_src), project=str(p), flatten=False, force=False
+    )
+    assert (p / '.claudesheets' / 'reimport.json').is_file()
+
+    # Re-stage with the original xlsx — diff is empty; session must be cleared.
+    out = do_reimport_stage(
+        xlsx=str(src), project=str(p), flatten=False, force=False
+    )
+    assert out['is_empty'] is True
+    assert not (p / '.claudesheets' / 'reimport.json').is_file()
+
+
+@use(populated)
 def test_reimport_apply_without_session_raises_typed_error(tmp_path: Path):
     p, _ = populated()
     with pytest.raises(MCPError) as excinfo:

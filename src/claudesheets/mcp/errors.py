@@ -35,6 +35,8 @@ def classify_click_error(e: click.ClickException) -> str:
         return 'project_not_found'
     if 'no built xlsx' in lower:
         return 'build_missing'
-    if 'no staged' in lower or 'staged' in lower:
+    if 'no staged re-import session' in lower:
         return 'no_staged_session'
+    if 'staged xlsx' in lower:
+        return 'staged_xlsx_changed'
     return 'click_error'
