@@ -1,3 +1,5 @@
+from testsweet import test
+
 from claudesheets.model.cell import Cell
 from claudesheets.model.format import (
     Border,
@@ -35,7 +37,8 @@ def _make_sheet() -> Sheet:
     return sh
 
 
-def test_yaml_round_trips_column_widths():
+@test
+def yaml_round_trips_column_widths():
     sh = _make_sheet()
     text = dump_yaml(sh)
     sh2 = Sheet(name='S')
@@ -44,7 +47,8 @@ def test_yaml_round_trips_column_widths():
     assert sh2.column_widths['A'] == 18.0
 
 
-def test_yaml_round_trips_formats_and_cell_formats():
+@test
+def yaml_round_trips_formats_and_cell_formats():
     sh = _make_sheet()
     text = dump_yaml(sh)
     sh2 = Sheet(name='S')
@@ -59,7 +63,8 @@ def test_yaml_round_trips_formats_and_cell_formats():
     assert sh2.get('A1').format_id == 'fmt'
 
 
-def test_yaml_round_trips_validations():
+@test
+def yaml_round_trips_validations():
     sh = _make_sheet()
     text = dump_yaml(sh)
     sh2 = Sheet(name='S')

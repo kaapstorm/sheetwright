@@ -6,16 +6,25 @@ This test asserts the rule *structure* (kind, ranges, operator,
 formula) survives even when the visual style is partly dropped.
 """
 
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 import openpyxl
 from openpyxl.formatting.rule import CellIsRule as XCellIsRule
 from openpyxl.styles import Border, Color, Font, PatternFill, Side
 from openpyxl.styles.differential import DifferentialStyle
+from testsweet import test
 
 from claudesheets.model.conditional import CellIsRule
 from claudesheets.xlsx.reader import read_xlsx
 from claudesheets.xlsx.writer import write_xlsx
+
+
+@contextmanager
+def _tmp_path():
+    with tempfile.TemporaryDirectory() as td:
+        yield Path(td)
 
 
 def _wb_with_bordered_cf(path: Path) -> None:
@@ -32,47 +41,49 @@ def _wb_with_bordered_cf(path: Path) -> None:
     wb.save(path)
 
 
-def test_cf_with_border_round_trips_structure_but_drops_border(
-    tmp_path: Path,
-):
-    src = tmp_path / 'in.xlsx'
-    _wb_with_bordered_cf(src)
-    out = tmp_path / 'out.xlsx'
-    write_xlsx(read_xlsx(src), out)
-    s = read_xlsx(out).sheet('S')
+@test
+def cf_with_border_round_trips_structure_but_drops_border():
+    with _tmp_path() as tmp_path:
+        src = tmp_path / 'in.xlsx'
+        _wb_with_bordered_cf(src)
+        out = tmp_path / 'out.xlsx'
+        write_xlsx(read_xlsx(src), out)
+        s = read_xlsx(out).sheet('S')
 
-    assert len(s.conditional_formats) == 1
-    cf = s.conditional_formats[0]
-    assert isinstance(cf, CellIsRule)
-    assert cf.operator == 'greaterThan'
-    assert cf.formula == ('0',)
-    assert 'A1:A10' in cf.ranges
+        assert len(s.conditional_formats) == 1
+        cf = s.conditional_formats[0]
+        assert isinstance(cf, CellIsRule)
+        assert cf.operator == 'greaterThan'
+        assert cf.formula == ('0',)
+        assert 'A1:A10' in cf.ranges
 
-    assert cf.style is not None
-    # openpyxl normalizes ARGB hex inconsistently across versions; tolerate
-    # both leading-FF and trailing-FF forms.
-    assert cf.style.fill_color in ('00FF00FF00', 'FF00FF00')
+        assert cf.style is not None
+        # openpyxl normalizes ARGB hex inconsistently across versions;
+        # tolerate both leading-FF and trailing-FF forms.
+        assert cf.style.fill_color in ('00FF00FF00', 'FF00FF00')
 
 
-def test_cf_with_font_bold_round_trips_through_xlsx(tmp_path: Path):
+@test
+def cf_with_font_bold_round_trips_through_xlsx():
     """font_bold IS supposed to survive xlsx round-trip post-fix."""
-    src = tmp_path / 'in_font.xlsx'
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = 'S'
-    rule = XCellIsRule(operator='greaterThan', formula=['0'])
-    rule.dxf = DifferentialStyle(
-        font=Font(b=True, color=Color(rgb='FFFF0000')),
-    )
-    ws.conditional_formatting.add('A1:A10', rule)
-    wb.save(src)
+    with _tmp_path() as tmp_path:
+        src = tmp_path / 'in_font.xlsx'
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'S'
+        rule = XCellIsRule(operator='greaterThan', formula=['0'])
+        rule.dxf = DifferentialStyle(
+            font=Font(b=True, color=Color(rgb='FFFF0000')),
+        )
+        ws.conditional_formatting.add('A1:A10', rule)
+        wb.save(src)
 
-    out = tmp_path / 'out_font.xlsx'
-    write_xlsx(read_xlsx(src), out)
-    s = read_xlsx(out).sheet('S')
+        out = tmp_path / 'out_font.xlsx'
+        write_xlsx(read_xlsx(src), out)
+        s = read_xlsx(out).sheet('S')
 
-    cf = s.conditional_formats[0]
-    assert isinstance(cf, CellIsRule)
-    assert cf.style is not None
-    assert cf.style.font_bold is True
-    assert cf.style.font_color in ('FFFF0000', 'FFFF0000')
+        cf = s.conditional_formats[0]
+        assert isinstance(cf, CellIsRule)
+        assert cf.style is not None
+        assert cf.style.font_bold is True
+        assert cf.style.font_color in ('FFFF0000', 'FFFF0000')

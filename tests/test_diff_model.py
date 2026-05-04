@@ -1,6 +1,6 @@
 import dataclasses
 
-import pytest
+from testsweet import catch_exceptions, test
 
 from claudesheets.diff.model import (
     CellChange,
@@ -10,7 +10,8 @@ from claudesheets.diff.model import (
 )
 
 
-def test_cell_change_is_frozen():
+@test
+def cell_change_is_frozen():
     cc = CellChange(
         sheet='S',
         addr='A1',
@@ -20,11 +21,13 @@ def test_cell_change_is_frozen():
         new_formula=None,
     )
     assert cc.sheet == 'S'
-    with pytest.raises(dataclasses.FrozenInstanceError):
+    with catch_exceptions() as excs:
         cc.sheet = 'T'  # type: ignore[misc]
+    assert excs and isinstance(excs[0], dataclasses.FrozenInstanceError)
 
 
-def test_sheet_diff_defaults_empty():
+@test
+def sheet_diff_defaults_empty():
     sd = SheetDiff(name='S')
     assert sd.cells_added == ()
     assert sd.cells_removed == ()
@@ -33,7 +36,8 @@ def test_sheet_diff_defaults_empty():
     assert sd.frozen_panes_change is None
 
 
-def test_workbook_diff_defaults_empty():
+@test
+def workbook_diff_defaults_empty():
     wd = WorkbookDiff()
     assert wd.sheets_added == ()
     assert wd.sheets_removed == ()
@@ -43,24 +47,28 @@ def test_workbook_diff_defaults_empty():
     assert wd.named_ranges_changed == ()
 
 
-def test_workbook_diff_is_empty_when_truly_empty():
+@test
+def workbook_diff_is_empty_when_truly_empty():
     wd = WorkbookDiff()
     assert wd.is_empty() is True
 
 
-def test_workbook_diff_is_not_empty_when_a_sheet_added():
+@test
+def workbook_diff_is_not_empty_when_a_sheet_added():
     wd = WorkbookDiff(sheets_added=('NewSheet',))
     assert wd.is_empty() is False
 
 
-def test_workbook_diff_is_empty_even_with_empty_sheet_diffs():
+@test
+def workbook_diff_is_empty_even_with_empty_sheet_diffs():
     """A WorkbookDiff containing only empty SheetDiffs should report
     empty. Defends against manual construction sites that don't filter."""
     wd = WorkbookDiff(sheets_changed=(SheetDiff(name='S'),))
     assert wd.is_empty() is True
 
 
-def test_named_range_change_holds_old_and_new():
+@test
+def named_range_change_holds_old_and_new():
     nrc = NamedRangeChange(
         name='growth_rate',
         old_ref='Inputs!$B$1',

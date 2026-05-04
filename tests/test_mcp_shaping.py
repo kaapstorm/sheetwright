@@ -1,3 +1,5 @@
+from testsweet import test
+
 from claudesheets.diff.check import CheckIssue
 from claudesheets.diff.compute import diff_workbooks
 from claudesheets.mcp.shaping import (
@@ -12,7 +14,8 @@ def _wb() -> Workbook:
     return Workbook(name='x', sheets=[Sheet(name='S')])
 
 
-def test_diff_to_dict_for_empty_diff():
+@test
+def diff_to_dict_for_empty_diff():
     d = diff_workbooks(_wb(), _wb())
     out = diff_to_dict(d)
     assert out['is_empty'] is True
@@ -21,7 +24,8 @@ def test_diff_to_dict_for_empty_diff():
     assert out['structured']['sheets_removed'] == []
 
 
-def test_diff_to_dict_for_added_cell():
+@test
+def diff_to_dict_for_added_cell():
     a = _wb()
     b = _wb()
     b.sheet('S').set('A1', Cell(value=42))
@@ -31,7 +35,8 @@ def test_diff_to_dict_for_added_cell():
     assert out['structured']['sheets_changed'][0]['cells_added'] == ['A1']
 
 
-def test_check_issues_to_dicts_serialises_each_field():
+@test
+def check_issues_to_dicts_serialises_each_field():
     issues = [
         CheckIssue(
             kind='dangling_sheet_ref',

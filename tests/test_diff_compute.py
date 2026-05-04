@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from testsweet import test
+
 from claudesheets.diff import diff_workbooks
 from claudesheets.model.cell import Cell
 from claudesheets.model.workbook import NamedRange, Sheet, Workbook
@@ -9,13 +11,15 @@ def _wb(name: str = 'x') -> Workbook:
     return Workbook(name=name, sheets=[Sheet(name='S')])
 
 
-def test_identical_workbooks_have_empty_diff():
+@test
+def identical_workbooks_have_empty_diff():
     a = _wb()
     b = _wb()
     assert diff_workbooks(a, b).is_empty()
 
 
-def test_added_sheet_shows_in_diff():
+@test
+def added_sheet_shows_in_diff():
     a = _wb()
     b = Workbook(name='x', sheets=[Sheet(name='S'), Sheet(name='New')])
     d = diff_workbooks(a, b)
@@ -23,14 +27,16 @@ def test_added_sheet_shows_in_diff():
     assert d.sheets_removed == ()
 
 
-def test_removed_sheet_shows_in_diff():
+@test
+def removed_sheet_shows_in_diff():
     a = Workbook(name='x', sheets=[Sheet(name='S'), Sheet(name='Old')])
     b = _wb()
     d = diff_workbooks(a, b)
     assert d.sheets_removed == ('Old',)
 
 
-def test_added_cell_shows_in_sheet_diff():
+@test
+def added_cell_shows_in_sheet_diff():
     a = _wb()
     b = _wb()
     b.sheet('S').set('A1', Cell(value=42))
@@ -41,7 +47,8 @@ def test_added_cell_shows_in_sheet_diff():
     assert sd.cells_added == ('A1',)
 
 
-def test_removed_cell_shows_in_sheet_diff():
+@test
+def removed_cell_shows_in_sheet_diff():
     a = _wb()
     a.sheet('S').set('A1', Cell(value=42))
     b = _wb()
@@ -50,7 +57,8 @@ def test_removed_cell_shows_in_sheet_diff():
     assert sd.cells_removed == ('A1',)
 
 
-def test_changed_cell_shows_old_and_new_in_sheet_diff():
+@test
+def changed_cell_shows_old_and_new_in_sheet_diff():
     a = _wb()
     a.sheet('S').set('A1', Cell(value=1))
     b = _wb()
@@ -64,7 +72,8 @@ def test_changed_cell_shows_old_and_new_in_sheet_diff():
     assert cc.new_value == 2
 
 
-def test_changed_formula_in_diff():
+@test
+def changed_formula_in_diff():
     a = _wb()
     a.sheet('S').set('A1', Cell(formula='=1+1'))
     b = _wb()
@@ -74,7 +83,8 @@ def test_changed_formula_in_diff():
     assert cc.new_formula == '=2+2'
 
 
-def test_named_range_added():
+@test
+def named_range_added():
     a = _wb()
     b = _wb()
     b.named_ranges.append(NamedRange(name='gr', ref='S!$A$1'))
@@ -82,7 +92,8 @@ def test_named_range_added():
     assert d.named_ranges_added == ('gr',)
 
 
-def test_named_range_changed_ref():
+@test
+def named_range_changed_ref():
     a = _wb()
     a.named_ranges.append(NamedRange(name='gr', ref='S!$A$1'))
     b = _wb()
@@ -93,7 +104,8 @@ def test_named_range_changed_ref():
     assert d.named_ranges_changed[0].new_ref == 'S!$B$2'
 
 
-def test_frozen_panes_change():
+@test
+def frozen_panes_change():
     a = _wb()
     b = _wb()
     b.sheet('S').frozen_panes = 'B2'
@@ -104,7 +116,8 @@ def test_frozen_panes_change():
     assert sd.frozen_panes_change.new == 'B2'
 
 
-def test_print_area_change():
+@test
+def print_area_change():
     a = _wb()
     b = _wb()
     b.sheet('S').print_area = 'A1:E10'
@@ -113,7 +126,8 @@ def test_print_area_change():
     assert sd.print_area_change.new == 'A1:E10'
 
 
-def test_column_width_change():
+@test
+def column_width_change():
     a = _wb()
     b = _wb()
     b.sheet('S').column_widths['A'] = 18.0

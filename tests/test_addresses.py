@@ -1,4 +1,4 @@
-import pytest
+from testsweet import catch_exceptions, test
 
 from claudesheets.model.workbook import NamedRange, Sheet, Workbook
 from claudesheets.testing.addresses import parse_address
@@ -10,39 +10,50 @@ def _wb_with_named(name: str, ref: str) -> Workbook:
     return wb
 
 
-def test_parse_qualified_a1():
+@test
+def parse_qualified_a1():
     wb = _wb_with_named('growth_rate', 'Inputs!$B$1')
     assert parse_address(wb, 'Inputs!B1') == ('Inputs', 'B1')
 
 
-def test_parse_named_range_resolves_to_address():
+@test
+def parse_named_range_resolves_to_address():
     wb = _wb_with_named('growth_rate', 'Inputs!$B$1')
     assert parse_address(wb, 'growth_rate') == ('Inputs', 'B1')
 
 
-def test_parse_unknown_name_raises():
+@test
+def parse_unknown_name_raises():
     wb = _wb_with_named('growth_rate', 'Inputs!$B$1')
-    with pytest.raises(KeyError, match='unknown'):
+    with catch_exceptions() as excs:
         parse_address(wb, 'no_such_name')
+    assert excs and isinstance(excs[0], KeyError)
+    assert 'unknown' in str(excs[0])
 
 
-def test_parse_bare_a1_without_sheet_raises():
+@test
+def parse_bare_a1_without_sheet_raises():
     wb = _wb_with_named('growth_rate', 'Inputs!$B$1')
-    with pytest.raises(ValueError, match='must include sheet'):
+    with catch_exceptions() as excs:
         parse_address(wb, 'B1')
+    assert excs and isinstance(excs[0], ValueError)
+    assert 'must include sheet' in str(excs[0])
 
 
-def test_parse_strips_dollar_signs():
+@test
+def parse_strips_dollar_signs():
     wb = _wb_with_named('growth_rate', 'Inputs!$B$1')
     assert parse_address(wb, 'Inputs!$B$1') == ('Inputs', 'B1')
 
 
-def test_parse_quoted_sheet_name():
+@test
+def parse_quoted_sheet_name():
     wb = Workbook(name='x', sheets=[Sheet(name='My Sheet')])
     assert parse_address(wb, "'My Sheet'!A1") == ('My Sheet', 'A1')
 
 
-def test_parse_sheet_scoped_named_range_resolves():
+@test
+def parse_sheet_scoped_named_range_resolves():
     wb = Workbook(name='x', sheets=[Sheet(name='Inputs')])
     wb.named_ranges.append(
         NamedRange(

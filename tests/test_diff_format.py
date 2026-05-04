@@ -1,3 +1,5 @@
+from testsweet import test
+
 from claudesheets.diff import diff_workbooks
 from claudesheets.diff.format import render
 from claudesheets.model.cell import Cell
@@ -8,12 +10,14 @@ def _wb() -> Workbook:
     return Workbook(name='x', sheets=[Sheet(name='S')])
 
 
-def test_render_empty_diff_returns_no_changes_message():
+@test
+def render_empty_diff_returns_no_changes_message():
     out = render(diff_workbooks(_wb(), _wb()))
     assert 'no changes' in out.lower()
 
 
-def test_render_added_sheet_lists_it():
+@test
+def render_added_sheet_lists_it():
     a = _wb()
     b = Workbook(name='x', sheets=[Sheet(name='S'), Sheet(name='Q4')])
     out = render(diff_workbooks(a, b))
@@ -21,7 +25,8 @@ def test_render_added_sheet_lists_it():
     assert 'added' in out.lower()
 
 
-def test_render_removed_sheet_lists_it():
+@test
+def render_removed_sheet_lists_it():
     a = Workbook(name='x', sheets=[Sheet(name='S'), Sheet(name='Old')])
     b = _wb()
     out = render(diff_workbooks(a, b))
@@ -29,7 +34,8 @@ def test_render_removed_sheet_lists_it():
     assert 'removed' in out.lower()
 
 
-def test_render_changed_cell_shows_address_and_values():
+@test
+def render_changed_cell_shows_address_and_values():
     a = _wb()
     a.sheet('S').set('A1', Cell(value=1))
     b = _wb()
@@ -40,7 +46,8 @@ def test_render_changed_cell_shows_address_and_values():
     assert '2' in out
 
 
-def test_render_named_range_added():
+@test
+def render_named_range_added():
     a = _wb()
     b = _wb()
     b.named_ranges.append(NamedRange(name='growth_rate', ref='S!$A$1'))
@@ -48,7 +55,8 @@ def test_render_named_range_added():
     assert 'growth_rate' in out
 
 
-def test_render_groups_per_sheet():
+@test
+def render_groups_per_sheet():
     a = _wb()
     b = _wb()
     b.sheet('S').set('A1', Cell(value=1))

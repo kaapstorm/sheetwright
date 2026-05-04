@@ -1,6 +1,6 @@
 import dataclasses
 
-import pytest
+from testsweet import catch_exceptions, test
 
 from claudesheets.model.comment import Comment
 from claudesheets.model.conditional import (
@@ -14,7 +14,8 @@ from claudesheets.model.table import ListTable, ListTableColumn
 from claudesheets.model.workbook import Sheet
 
 
-def test_sheet_defaults_for_tier2_fields():
+@test
+def sheet_defaults_for_tier2_fields():
     s = Sheet(name='S')
     assert s.print_area is None
     assert s.frozen_panes is None
@@ -23,14 +24,17 @@ def test_sheet_defaults_for_tier2_fields():
     assert s.tables == []
 
 
-def test_comment_is_frozen():
+@test
+def comment_is_frozen():
     c = Comment(author='Alice', text='Watch this row')
     assert c.author == 'Alice'
-    with pytest.raises(dataclasses.FrozenInstanceError):
+    with catch_exceptions() as excs:
         c.author = 'Bob'  # type: ignore[misc]
+    assert excs and isinstance(excs[0], dataclasses.FrozenInstanceError)
 
 
-def test_cell_is_rule_typed_fields():
+@test
+def cell_is_rule_typed_fields():
     cf = CellIsRule(
         ranges=('A1:A10',),
         operator='greaterThan',
@@ -38,16 +42,19 @@ def test_cell_is_rule_typed_fields():
     )
     assert cf.operator == 'greaterThan'
     assert cf.formula == ('0',)
-    with pytest.raises(dataclasses.FrozenInstanceError):
+    with catch_exceptions() as excs:
         cf.operator = 'lessThan'  # type: ignore[misc]
+    assert excs and isinstance(excs[0], dataclasses.FrozenInstanceError)
 
 
-def test_formula_rule_typed_fields():
+@test
+def formula_rule_typed_fields():
     cf = FormulaRule(ranges=('A1:A10',), formula='ISERROR(A1)')
     assert cf.formula == 'ISERROR(A1)'
 
 
-def test_color_scale_rule_three_stops():
+@test
+def color_scale_rule_three_stops():
     cf = ColorScaleRule(
         ranges=('A1:A10',),
         start_type='min',
@@ -61,19 +68,22 @@ def test_color_scale_rule_three_stops():
     assert cf.mid_type == 'percentile'
 
 
-def test_data_bar_rule_typed_fields():
+@test
+def data_bar_rule_typed_fields():
     cf = DataBarRule(ranges=('A1:A10',), color='FF638EC6')
     assert cf.color == 'FF638EC6'
     assert cf.show_value is True  # default
 
 
-def test_icon_set_rule_typed_fields():
+@test
+def icon_set_rule_typed_fields():
     cf = IconSetRule(ranges=('A1:A10',), icon_style='3TrafficLights1')
     assert cf.icon_style == '3TrafficLights1'
     assert cf.values == ('0', '33', '67')
 
 
-def test_list_table_is_frozen():
+@test
+def list_table_is_frozen():
     t = ListTable(
         name='Sales',
         ref='A1:C10',
@@ -87,5 +97,6 @@ def test_list_table_is_frozen():
     )
     assert t.name == 'Sales'
     assert len(t.columns) == 3
-    with pytest.raises(dataclasses.FrozenInstanceError):
+    with catch_exceptions() as excs:
         t.name = 'Other'  # type: ignore[misc]
+    assert excs and isinstance(excs[0], dataclasses.FrozenInstanceError)
