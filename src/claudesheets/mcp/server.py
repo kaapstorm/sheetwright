@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import io
 from contextlib import redirect_stdout
-from typing import Any, Callable, Dict, Optional, TypeVar
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 import click
 from mcp.server.fastmcp import FastMCP
@@ -141,6 +141,66 @@ def do_build(project: str, out_path: Optional[str] = None) -> Dict[str, Any]:
     return _ok(captured.strip() or 'build complete')
 
 
+def do_recalc(project: str, force: bool = False) -> Dict[str, Any]:
+    """Run the calc engine; cache results."""
+    from claudesheets.commands.recalc_cmd import run
+
+    buf = io.StringIO()
+    try:
+        with redirect_stdout(buf):
+            run(project_path=project, force=force)
+    except click.ClickException as e:
+        raise MCPError(classify_click_error(e), e.message)
+    return _ok(buf.getvalue().strip() or 'recalc complete')
+
+
+def do_snapshot(project: str, update: bool = False) -> Dict[str, Any]:
+    """Compare or update the snapshot of calculated values.
+
+    Returns {ok, message, has_diffs}. `has_diffs=True` means the
+    saved snapshot differs from the current calculation; this is a
+    successful tool result, not a failure.
+    """
+    from claudesheets.commands.snapshot_cmd import run
+
+    buf = io.StringIO()
+    has_diffs = False
+    try:
+        with redirect_stdout(buf):
+            run(project_path=project, update=update)
+    except click.exceptions.Exit as e:
+        has_diffs = e.exit_code != 0
+    except click.ClickException as e:
+        raise MCPError(classify_click_error(e), e.message)
+    return {
+        'ok': True,
+        'message': buf.getvalue().strip(),
+        'has_diffs': has_diffs,
+    }
+
+
+def do_test(
+    project: str, targets: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """Run the project's testsweet tests.
+
+    Returns `{passed: bool, output: str}`.
+    """
+    from claudesheets.commands.test_cmd import run
+
+    targets = targets or []
+    buf = io.StringIO()
+    passed = True
+    try:
+        with redirect_stdout(buf):
+            run(project_path=project, targets=targets)
+    except click.exceptions.Exit as e:
+        passed = e.exit_code == 0
+    except click.ClickException as e:
+        raise MCPError(classify_click_error(e), e.message)
+    return {'passed': passed, 'output': buf.getvalue()}
+
+
 def build_server() -> FastMCP:
     """Construct and return the claudesheets MCP server."""
     mcp = FastMCP('claudesheets')
@@ -150,4 +210,7 @@ def build_server() -> FastMCP:
     mcp.tool()(do_init)
     mcp.tool()(do_import_xlsx)
     mcp.tool()(do_build)
+    mcp.tool()(do_recalc)
+    mcp.tool()(do_snapshot)
+    mcp.tool()(do_test)
     return mcp
