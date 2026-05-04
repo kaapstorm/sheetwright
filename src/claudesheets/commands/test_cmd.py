@@ -19,7 +19,15 @@ from pathlib import Path
 from typing import Sequence
 
 import click
-from testsweet import run as ts_run
+from testsweet import (
+    Errored,
+    Failed,
+    Passed,
+    Skipped,
+    XFailed,
+    XPassed,
+    run as ts_run,
+)
 
 from claudesheets.exceptions import ProjectError
 from claudesheets.project import Project
@@ -50,13 +58,28 @@ def run(*, project_path: str, targets: Sequence[str]) -> None:
         any_failure = False
         for test_file in test_files:
             module = _import_module(test_file)
-            for name, exc in ts_run(module):
+            for name, outcome in ts_run(module):
                 full = f'{test_file.relative_to(project.root)}::{name}'
-                if exc is None:
-                    click.echo(f'{full} ... ok')
-                else:
-                    any_failure = True
-                    click.echo(f'{full} ... FAIL: {type(exc).__name__}: {exc}')
+                match outcome:
+                    case Passed():
+                        click.echo(f'{full} ... ok')
+                    case Skipped(reason=reason):
+                        click.echo(f'{full} ... skipped: {reason}')
+                    case XFailed(reason=reason):
+                        click.echo(f'{full} ... xfail: {reason}')
+                    case XPassed(reason=reason):
+                        any_failure = True
+                        click.echo(f'{full} ... XPASS: {reason}')
+                    case Failed(exc=exc):
+                        any_failure = True
+                        click.echo(
+                            f'{full} ... FAIL: {type(exc).__name__}: {exc}'
+                        )
+                    case Errored(exc=exc):
+                        any_failure = True
+                        click.echo(
+                            f'{full} ... ERROR: {type(exc).__name__}: {exc}'
+                        )
     finally:
         sys.path[:] = saved_path
         # Restore any pre-existing _user_tests modules we may have
