@@ -11,7 +11,7 @@ import io
 from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Dict, List, Optional
 
 import click
 from mcp.server.fastmcp import FastMCP
@@ -19,6 +19,9 @@ from mcp.server.fastmcp import FastMCP
 from claudesheets.commands.build_cmd import run as _build_run
 from claudesheets.commands.import_cmd import run as _import_run
 from claudesheets.commands.init_cmd import run as _init_run
+from claudesheets.commands.recalc_cmd import run as _recalc_run
+from claudesheets.commands.snapshot_cmd import run as _snapshot_run
+from claudesheets.commands.test_cmd import run as _test_run
 from claudesheets.diff import diff_workbooks
 from claudesheets.diff.check import check_workbook
 from claudesheets.diff.loaders import load_target
@@ -26,18 +29,14 @@ from claudesheets.exceptions import ProjectError
 from claudesheets.mcp.errors import MCPError, classify_click_error
 from claudesheets.mcp.shaping import check_issues_to_dicts, diff_to_dict
 from claudesheets.project import Project
+from claudesheets.reimport import (
+    ReimportSession,
+    apply_session,
+    clear_session,
+    save_session,
+    stage_reimport,
+)
 from claudesheets.source.reader import read_source
-
-
-T = TypeVar('T')
-
-
-def _capture(fn: Callable[..., T], *args: Any, **kwargs: Any) -> tuple[T, str]:
-    """Run `fn`; return its result + anything click.echo'd to stdout."""
-    buf = io.StringIO()
-    with redirect_stdout(buf):
-        result = fn(*args, **kwargs)
-    return result, buf.getvalue()
 
 
 def _ok(message: str, **extra: Any) -> Dict[str, Any]:
@@ -87,14 +86,26 @@ def do_check(project: str) -> Dict[str, Any]:
     return {'issues': check_issues_to_dicts(issues)}
 
 
-def do_init(path: str) -> Dict[str, Any]:
-    """Scaffold an empty claudesheets project at `path`."""
+def _run_capturing(fn: Any, **kwargs: Any) -> str:
+    """Run `fn(**kwargs)` with stdout captured; return captured text.
+
+    Translates `ClickException` to `MCPError`. Used by tools that
+    delegate to a `commands/*.run()` function and don't expect
+    `click.exceptions.Exit` (which signals "result with diffs").
+    """
+    buf = io.StringIO()
     try:
-        _, captured = _capture(_init_run, path)
+        with redirect_stdout(buf):
+            fn(**kwargs)
     except click.ClickException as e:
         raise MCPError(classify_click_error(e), e.message)
-    msg = captured.strip() or f'Initialised claudesheets project at {path}'
-    return _ok(msg)
+    return buf.getvalue()
+
+
+def do_init(path: str) -> Dict[str, Any]:
+    """Scaffold an empty claudesheets project at `path`."""
+    captured = _run_capturing(_init_run, path=path).strip()
+    return _ok(captured or f'Initialised claudesheets project at {path}')
 
 
 def do_import_xlsx(
@@ -115,45 +126,34 @@ def do_import_xlsx(
             'sheets/ is non-empty; use do_reimport_stage / '
             'do_reimport_apply for the merge flow.',
         )
-    try:
-        _, captured = _capture(
-            _import_run,
-            xlsx_path=xlsx,
-            project_path=project,
-            archive=archive,
-            flatten=flatten,
-            non_interactive=False,
-            apply=False,
-            abort=False,
-            force=False,
-        )
-    except click.ClickException as e:
-        raise MCPError(classify_click_error(e), e.message)
-    return _ok(captured.strip() or f'Imported {xlsx} into {project}')
+    captured = _run_capturing(
+        _import_run,
+        xlsx_path=xlsx,
+        project_path=project,
+        archive=archive,
+        flatten=flatten,
+        non_interactive=False,
+        apply=False,
+        abort=False,
+        force=False,
+    ).strip()
+    return _ok(captured or f'Imported {xlsx} into {project}')
 
 
 def do_build(project: str, out_path: Optional[str] = None) -> Dict[str, Any]:
     """Compile sources into an .xlsx."""
-    try:
-        _, captured = _capture(
-            _build_run, project_path=project, out_path=out_path
-        )
-    except click.ClickException as e:
-        raise MCPError(classify_click_error(e), e.message)
-    return _ok(captured.strip() or 'build complete')
+    captured = _run_capturing(
+        _build_run, project_path=project, out_path=out_path
+    ).strip()
+    return _ok(captured or 'build complete')
 
 
 def do_recalc(project: str, force: bool = False) -> Dict[str, Any]:
     """Run the calc engine; cache results."""
-    from claudesheets.commands.recalc_cmd import run
-
-    buf = io.StringIO()
-    try:
-        with redirect_stdout(buf):
-            run(project_path=project, force=force)
-    except click.ClickException as e:
-        raise MCPError(classify_click_error(e), e.message)
-    return _ok(buf.getvalue().strip() or 'recalc complete')
+    captured = _run_capturing(
+        _recalc_run, project_path=project, force=force
+    ).strip()
+    return _ok(captured or 'recalc complete')
 
 
 def do_snapshot(project: str, update: bool = False) -> Dict[str, Any]:
@@ -163,13 +163,11 @@ def do_snapshot(project: str, update: bool = False) -> Dict[str, Any]:
     saved snapshot differs from the current calculation; this is a
     successful tool result, not a failure.
     """
-    from claudesheets.commands.snapshot_cmd import run
-
     buf = io.StringIO()
     has_diffs = False
     try:
         with redirect_stdout(buf):
-            run(project_path=project, update=update)
+            _snapshot_run(project_path=project, update=update)
     except click.exceptions.Exit as e:
         has_diffs = e.exit_code != 0
     except click.ClickException as e:
@@ -188,14 +186,11 @@ def do_test(
 
     Returns `{passed: bool, output: str}`.
     """
-    from claudesheets.commands.test_cmd import run
-
-    targets = targets or []
     buf = io.StringIO()
     passed = True
     try:
         with redirect_stdout(buf):
-            run(project_path=project, targets=targets)
+            _test_run(project_path=project, targets=targets or [])
     except click.exceptions.Exit as e:
         passed = e.exit_code == 0
     except click.ClickException as e:
@@ -215,12 +210,6 @@ def do_reimport_stage(
     `do_reimport_apply` can later commit. Returns the diff plus
     `xlsx_path` and `xlsx_sha256` for cross-call verification.
     """
-    from claudesheets.reimport import (
-        ReimportSession,
-        save_session,
-        stage_reimport,
-    )
-
     proj = _open_project(project)
     try:
         staged = stage_reimport(proj, Path(xlsx), flatten=flatten, force=force)
@@ -248,8 +237,6 @@ def do_reimport_stage(
 
 def do_reimport_apply(project: str, archive: bool = False) -> Dict[str, Any]:
     """Complete a previously staged re-import."""
-    from claudesheets.reimport import apply_session
-
     proj = _open_project(project)
     buf = io.StringIO()
     try:
@@ -264,8 +251,6 @@ def do_reimport_apply(project: str, archive: bool = False) -> Dict[str, Any]:
 
 def do_reimport_abort(project: str) -> Dict[str, Any]:
     """Discard a previously staged re-import session."""
-    from claudesheets.reimport import clear_session
-
     proj = _open_project(project)
     clear_session(proj.reimport_session_path)
     return _ok('Re-import session cleared.')
