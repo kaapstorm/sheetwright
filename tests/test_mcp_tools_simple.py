@@ -59,29 +59,16 @@ def test_diff_tool_reports_changed_cell():
     )
 
 
-@fixture
-def clean_project(tmp_path: Path):
-    p = tmp_path / 'proj'
-    p.mkdir()
-    (p / 'claudesheets.toml').write_text(
-        '[project]\nname = "x"\n[build]\ncalc_engine = "libreoffice"\n'
-    )
-    (p / 'workbook.toml').write_text('[workbook]\nname = "x"\nsheets = []\n')
-    (p / 'sheets').mkdir()
-    (p / 'data').mkdir()
-    yield p
-
-
-@use(clean_project)
+@use(imported)
 def test_check_tool_clean_workbook_returns_empty_list():
-    p = clean_project()
+    p = imported()
     out = do_check(project=str(p))
     assert out == {'issues': []}
 
 
-@use(clean_project)
+@use(imported)
 def test_check_tool_reports_orphaned_sheet():
-    p = clean_project()
+    p = imported()
     (p / 'sheets' / '99_orphan.md').write_text(
         '| (cell) | A |\n| --- | --- |\n'
     )

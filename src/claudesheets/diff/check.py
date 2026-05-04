@@ -24,7 +24,7 @@ from openpyxl.formula.tokenizer import Tokenizer
 
 from claudesheets.config import load_workbook
 from claudesheets.model.workbook import Workbook
-from claudesheets.project import Project
+from claudesheets.project import Project, slugify
 
 
 @dataclass(frozen=True)
@@ -65,26 +65,33 @@ def check_workbook(wb: Workbook, project: Project) -> List[CheckIssue]:
                     )
                 )
 
+    # workbook.toml stores display names (e.g. "Inputs"); the
+    # source reader/writer reconstruct stems via slugify+index. We
+    # compare on the same stem keyspace.
     if project.workbook_toml.is_file():
         manifest = load_workbook(project.workbook_toml.read_text())
-        manifest_sheets = set(manifest.sheets)
+        manifest_stems = {
+            f'{i:02d}_{slugify(name)}': name
+            for i, name in enumerate(manifest.sheets, start=1)
+        }
     else:
-        manifest_sheets = set()
+        manifest_stems = {}
 
     on_disk = {p.stem for p in project.sheets_dir.glob('*.md')}
 
-    for stem in manifest_sheets - on_disk:
+    for stem in set(manifest_stems) - on_disk:
+        name = manifest_stems[stem]
         issues.append(
             CheckIssue(
                 kind='manifest_sheet_missing',
                 detail=(
-                    f'workbook.toml lists {stem!r} but '
+                    f'workbook.toml lists {name!r} but '
                     f'sheets/{stem}.md is missing'
                 ),
                 location='workbook.toml',
             )
         )
-    for stem in on_disk - manifest_sheets:
+    for stem in on_disk - set(manifest_stems):
         issues.append(
             CheckIssue(
                 kind='sheet_file_missing_from_manifest',
