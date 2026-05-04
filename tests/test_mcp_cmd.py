@@ -4,8 +4,11 @@ import subprocess
 import sys
 import time
 
+from testsweet import test
 
-def test_mcp_subcommand_exists_in_help():
+
+@test
+def mcp_subcommand_exists_in_help():
     result = subprocess.run(
         [sys.executable, '-m', 'claudesheets.cli', '--help'],
         capture_output=True,
@@ -15,7 +18,8 @@ def test_mcp_subcommand_exists_in_help():
     assert 'mcp' in result.stdout
 
 
-def test_mcp_subcommand_help_describes_stdio():
+@test
+def mcp_subcommand_help_describes_stdio():
     result = subprocess.run(
         [sys.executable, '-m', 'claudesheets.cli', 'mcp', '--help'],
         capture_output=True,
@@ -36,7 +40,8 @@ def _read_one_response(stream, timeout: float) -> str:
     raise TimeoutError('no MCP response within timeout')
 
 
-def test_mcp_server_responds_to_initialize_and_lists_tools():
+@test
+def mcp_server_responds_to_initialize_and_lists_tools():
     """Smoke test: launch the server, send initialize + tools/list,
     assert the registered tool names appear in the response."""
     proc = subprocess.Popen(
@@ -124,7 +129,8 @@ def test_mcp_server_responds_to_initialize_and_lists_tools():
         proc.wait(timeout=5)
 
 
-def test_mcp_server_error_path_includes_code():
+@test
+def mcp_server_error_path_includes_code():
     """When a tool raises MCPError, the error response should be visible
     to the client. We don't (yet) require the `code` to round-trip via
     FastMCP — just that the human message is present and the response

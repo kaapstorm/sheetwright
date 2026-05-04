@@ -1,9 +1,11 @@
 from click.testing import CliRunner
+from testsweet import test
 
 from claudesheets.cli import main
 
 
-def test_help_lists_subcommands():
+@test
+def help_lists_subcommands():
     runner = CliRunner()
     result = runner.invoke(main, ['--help'])
     assert result.exit_code == 0
@@ -11,7 +13,8 @@ def test_help_lists_subcommands():
         assert cmd in result.output
 
 
-def test_unknown_subcommand_errors():
+@test
+def unknown_subcommand_errors():
     runner = CliRunner()
     result = runner.invoke(main, ['bogus'])
     assert result.exit_code != 0

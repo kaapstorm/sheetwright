@@ -1,4 +1,7 @@
-from unmagic import fixture, use
+import tempfile
+from pathlib import Path
+
+from testsweet import test
 
 from claudesheets.model.cell import Cell
 from claudesheets.model.format import CellFormat, Font
@@ -36,23 +39,20 @@ def _make_workbook() -> Workbook:
     return wb
 
 
-@fixture
-def project_dir(tmp_path):
-    yield tmp_path / 'proj'
-
-
-@use(project_dir)
-def test_round_trip_via_source_dir():
-    wb = _make_workbook()
-    write_source(wb, project_dir())
-    wb2 = read_source(project_dir())
-    assert [s.name for s in wb2.sheets] == ['Inputs', 'Outputs']
-    assert wb2.sheet('Inputs').get('A1').value == 'growth'
-    assert wb2.sheet('Inputs').get('A1').format_id == 'bold'
-    assert wb2.sheet('Inputs').column_widths['A'] == 18.0
-    assert wb2.sheet('Outputs').get('B1').formula == '=Inputs!B1*100'
-    assert wb2.named_ranges[0].name == 'growth_rate'
-    assert wb2.named_ranges[0].ref == 'Inputs!$B$1'
-    v = wb2.sheet('Inputs').validations[0]
-    assert v.ranges == ['A1:A10']
-    assert v.formula1 == '"yes,no,maybe"'
+@test
+def round_trip_via_source_dir():
+    with tempfile.TemporaryDirectory() as td:
+        project_dir = Path(td) / 'proj'
+        wb = _make_workbook()
+        write_source(wb, project_dir)
+        wb2 = read_source(project_dir)
+        assert [s.name for s in wb2.sheets] == ['Inputs', 'Outputs']
+        assert wb2.sheet('Inputs').get('A1').value == 'growth'
+        assert wb2.sheet('Inputs').get('A1').format_id == 'bold'
+        assert wb2.sheet('Inputs').column_widths['A'] == 18.0
+        assert wb2.sheet('Outputs').get('B1').formula == '=Inputs!B1*100'
+        assert wb2.named_ranges[0].name == 'growth_rate'
+        assert wb2.named_ranges[0].ref == 'Inputs!$B$1'
+        v = wb2.sheet('Inputs').validations[0]
+        assert v.ranges == ['A1:A10']
+        assert v.formula1 == '"yes,no,maybe"'
