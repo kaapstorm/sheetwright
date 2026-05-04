@@ -109,7 +109,7 @@ def do_import_xlsx(
     (`do_reimport_stage` / `do_reimport_apply` / `do_reimport_abort`).
     """
     proj = _open_project(project)
-    if any(proj.sheets_dir.iterdir()):
+    if proj.has_source():
         raise MCPError(
             'reimport_required',
             'sheets/ is non-empty; use do_reimport_stage / '
@@ -254,6 +254,8 @@ def do_reimport_apply(project: str, archive: bool = False) -> Dict[str, Any]:
     buf = io.StringIO()
     try:
         with redirect_stdout(buf):
+            # flatten was decided at stage time and reflected in the
+            # saved session; apply just writes what was staged.
             apply_session(proj, archive=archive, flatten=False)
     except click.ClickException as e:
         raise MCPError(classify_click_error(e), e.message)

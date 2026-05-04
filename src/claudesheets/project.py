@@ -67,6 +67,10 @@ class Project:
     def reimport_session_path(self) -> Path:
         return self.cache_dir / 'reimport.json'
 
+    def has_source(self) -> bool:
+        """True if `sheets/` is non-empty (initial import already done)."""
+        return any(self.sheets_dir.iterdir())
+
 
 def slugify(name: str) -> str:
     s = re.sub(r'[^A-Za-z0-9]+', '_', name).strip('_').lower()

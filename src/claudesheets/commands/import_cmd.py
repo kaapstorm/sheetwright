@@ -56,8 +56,7 @@ def run(
         )
     xlsx = Path(xlsx_path).resolve()
 
-    sheets_dir = project_root / 'sheets'
-    if any(sheets_dir.iterdir()):
+    if project.has_source():
         from claudesheets.reimport import do_reimport
 
         do_reimport(

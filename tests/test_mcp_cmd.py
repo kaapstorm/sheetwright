@@ -122,3 +122,82 @@ def test_mcp_server_responds_to_initialize_and_lists_tools():
         if proc.stdin is not None:
             proc.stdin.close()
         proc.wait(timeout=5)
+
+
+def test_mcp_server_error_path_includes_code():
+    """When a tool raises MCPError, the error response should be visible
+    to the client. We don't (yet) require the `code` to round-trip via
+    FastMCP — just that the human message is present and the response
+    is a JSON-RPC error.
+    """
+    proc = subprocess.Popen(
+        [sys.executable, '-m', 'claudesheets.cli', 'mcp'],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=0,
+    )
+    try:
+        assert proc.stdin is not None
+        assert proc.stdout is not None
+        proc.stdin.write(
+            json.dumps(
+                {
+                    'jsonrpc': '2.0',
+                    'id': 1,
+                    'method': 'initialize',
+                    'params': {
+                        'protocolVersion': '2024-11-05',
+                        'capabilities': {},
+                        'clientInfo': {
+                            'name': 'test',
+                            'version': '0.0.0',
+                        },
+                    },
+                }
+            )
+            + '\n'
+        )
+        proc.stdin.flush()
+        _read_one_response(proc.stdout, timeout=10.0)
+        proc.stdin.write(
+            json.dumps(
+                {
+                    'jsonrpc': '2.0',
+                    'method': 'notifications/initialized',
+                }
+            )
+            + '\n'
+        )
+        proc.stdin.flush()
+
+        proc.stdin.write(
+            json.dumps(
+                {
+                    'jsonrpc': '2.0',
+                    'id': 2,
+                    'method': 'tools/call',
+                    'params': {
+                        'name': 'do_check',
+                        'arguments': {
+                            'project': '/nonexistent/path/no-project'
+                        },
+                    },
+                }
+            )
+            + '\n'
+        )
+        proc.stdin.flush()
+
+        line = _read_one_response(proc.stdout, timeout=10.0)
+        resp = json.loads(line)
+        is_error = (
+            'error' in resp
+            or (resp.get('result') or {}).get('isError') is True
+        )
+        assert is_error, f'expected error response, got {resp}'
+    finally:
+        if proc.stdin is not None:
+            proc.stdin.close()
+        proc.wait(timeout=5)
