@@ -153,7 +153,7 @@ requires-dist = [
     { name = "mcp", extras = ["cli"], specifier = ">=1.20,<2" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "ruamel-yaml", specifier = ">=0.19.1" },
-    { name = "testsweet", specifier = ">=0.1.4" },
+    { name = "testsweet", specifier = ">=0.2.0" },
     { name = "tomli-w", specifier = ">=1.2.0" },
 ]
 
@@ -999,11 +999,11 @@ wheels = [
 
 [[package]]
 name = "testsweet"
-version = "0.1.4"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b9/2b/48cb60153ea397dd48b73c857b8839ce92d2bd6b81eb471e1ff96a65354e/testsweet-0.1.4.tar.gz", hash = "sha256:f24988f9402089518310610d731f0870cb3df4c0747ac1478223c863ecdf9216", size = 51090, upload-time = "2026-04-30T11:05:13.179Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/f2/9887dfe4686a5b27a178cada29df35b2ef076c2724f3aca2c7aac40dd026/testsweet-0.2.0.tar.gz", hash = "sha256:a4c270f861bde1099b855e850e35e695e85f688bf12504c1083737d0d3668838", size = 111065, upload-time = "2026-05-04T15:34:05.091Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/e3/e1e92bf18ca4ec9121640ff20f4cf47027b297c9bc07778237cebb7f5492/testsweet-0.1.4-py3-none-any.whl", hash = "sha256:a92324de7272c4463a339b004e1f84b4d2ff0488e652f773c93af27c809f4843", size = 17502, upload-time = "2026-04-30T11:05:14.64Z" },
+    { url = "https://files.pythonhosted.org/packages/76/3c/d0c7ffd3f4e702cf304de58284a571fff26f3dc1f4eecd3cb0988cfcc86a/testsweet-0.2.0-py3-none-any.whl", hash = "sha256:04148a7e65962529c2994f58fde1e8d9f997b69793e56e50294fa267303459fd", size = 28763, upload-time = "2026-05-04T15:34:02.973Z" },
 ]
 
 [[package]]

@@ -12,7 +12,7 @@ dependencies = [
     "mcp[cli]>=1.20,<2",
     "openpyxl>=3.1.5",
     "ruamel-yaml>=0.19.1",
-    "testsweet>=0.1.4",
+    "testsweet>=0.2.0",
     "tomli-w>=1.2.0",
 ]
 
@@ -37,6 +37,11 @@ packages = ["src/claudesheets"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.testsweet.discovery]
+include_paths = ["tests"]
+exclude_paths = ["tests/fixtures"]
+test_files = ["test_*.py"]
 
 [tool.ruff]
 line-length = 79

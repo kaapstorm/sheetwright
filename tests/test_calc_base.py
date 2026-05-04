@@ -1,21 +1,28 @@
+import tempfile
 from pathlib import Path
 
-import pytest
+from testsweet import catch_exceptions, test
 
 from claudesheets.calc import CalcEngine, CalcResult, get_calc_engine
 
 
-def test_calc_engine_is_abstract():
-    with pytest.raises(TypeError):
+@test
+def calc_engine_is_abstract():
+    with catch_exceptions() as excs:
         CalcEngine()  # type: ignore[abstract]
+    assert excs and isinstance(excs[0], TypeError)
 
 
-def test_unknown_engine_raises():
-    with pytest.raises(ValueError, match='unknown calc engine'):
+@test
+def unknown_engine_raises():
+    with catch_exceptions() as excs:
         get_calc_engine('nonsense')
+    assert excs and isinstance(excs[0], ValueError)
+    assert 'unknown calc engine' in str(excs[0])
 
 
-def test_calc_result_shape():
+@test
+def calc_result_shape():
     result: CalcResult = {'Sheet1': {'A1': 1, 'B2': 'hello'}}
     assert result['Sheet1']['A1'] == 1
 
@@ -25,7 +32,10 @@ class _Recorder(CalcEngine):
         return {'Recorded': {'A1': str(xlsx_path)}}
 
 
-def test_engine_subclass_evaluates(tmp_path):
-    eng = _Recorder()
-    out = eng.evaluate(tmp_path / 'x.xlsx')
-    assert out == {'Recorded': {'A1': str(tmp_path / 'x.xlsx')}}
+@test
+def engine_subclass_evaluates():
+    with tempfile.TemporaryDirectory() as td:
+        tmp_path = Path(td)
+        eng = _Recorder()
+        out = eng.evaluate(tmp_path / 'x.xlsx')
+        assert out == {'Recorded': {'A1': str(tmp_path / 'x.xlsx')}}
