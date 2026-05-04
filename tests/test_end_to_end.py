@@ -1,7 +1,8 @@
+import tempfile
 from pathlib import Path
 
 from click.testing import CliRunner
-from unmagic import fixture, use
+from testsweet import test
 
 from claudesheets.cli import main
 from claudesheets.model.workbook import Workbook
@@ -68,36 +69,37 @@ def _assert_workbooks_equivalent(a: Workbook, b: Workbook) -> None:
     }
 
 
-@fixture
-def tmp(tmp_path):
-    yield tmp_path
+@test
+def simple_workbook_round_trips_through_cli():
+    with tempfile.TemporaryDirectory() as td:
+        tmp_path = Path(td)
+        out = _round_trip(tmp_path, write_simple_xlsx)
+        ref = tmp_path / 'ref.xlsx'
+        write_simple_xlsx(ref)
+        src = read_xlsx(ref)
+        _assert_workbooks_equivalent(src, out)
 
 
-@use(tmp)
-def test_simple_workbook_round_trips_through_cli():
-    out = _round_trip(tmp(), write_simple_xlsx)
-    ref = tmp() / 'ref.xlsx'
-    write_simple_xlsx(ref)
-    src = read_xlsx(ref)
-    _assert_workbooks_equivalent(src, out)
+@test
+def formatted_workbook_round_trips_through_cli():
+    with tempfile.TemporaryDirectory() as td:
+        tmp_path = Path(td)
+        out = _round_trip(tmp_path, write_formatted_xlsx)
+        ref = tmp_path / 'ref.xlsx'
+        write_formatted_xlsx(ref)
+        src = read_xlsx(ref)
+        _assert_workbooks_equivalent(src, out)
 
 
-@use(tmp)
-def test_formatted_workbook_round_trips_through_cli():
-    out = _round_trip(tmp(), write_formatted_xlsx)
-    ref = tmp() / 'ref.xlsx'
-    write_formatted_xlsx(ref)
-    src = read_xlsx(ref)
-    _assert_workbooks_equivalent(src, out)
-
-
-@use(tmp)
-def test_validation_workbook_round_trips_through_cli():
-    out = _round_trip(tmp(), write_validation_xlsx)
-    ref = tmp() / 'ref.xlsx'
-    write_validation_xlsx(ref)
-    src = read_xlsx(ref)
-    for sa, sb in zip(src.sheets, out.sheets):
-        types_a = sorted(v.type for v in sa.validations)
-        types_b = sorted(v.type for v in sb.validations)
-        assert types_a == types_b
+@test
+def validation_workbook_round_trips_through_cli():
+    with tempfile.TemporaryDirectory() as td:
+        tmp_path = Path(td)
+        out = _round_trip(tmp_path, write_validation_xlsx)
+        ref = tmp_path / 'ref.xlsx'
+        write_validation_xlsx(ref)
+        src = read_xlsx(ref)
+        for sa, sb in zip(src.sheets, out.sheets):
+            types_a = sorted(v.type for v in sa.validations)
+            types_b = sorted(v.type for v in sb.validations)
+            assert types_a == types_b
