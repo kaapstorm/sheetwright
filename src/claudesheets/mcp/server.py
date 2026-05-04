@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import io
 from contextlib import redirect_stdout
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 import click
@@ -201,6 +203,72 @@ def do_test(
     return {'passed': passed, 'output': buf.getvalue()}
 
 
+def do_reimport_stage(
+    xlsx: str,
+    project: str,
+    flatten: bool = False,
+    force: bool = False,
+) -> Dict[str, Any]:
+    """Compute and stage a re-import diff.
+
+    If the diff is non-empty, saves a session on disk that
+    `do_reimport_apply` can later commit. Returns the diff plus
+    `xlsx_path` and `xlsx_sha256` for cross-call verification.
+    """
+    from claudesheets.reimport import (
+        ReimportSession,
+        save_session,
+        stage_reimport,
+    )
+
+    proj = _open_project(project)
+    try:
+        staged = stage_reimport(proj, Path(xlsx), flatten=flatten, force=force)
+    except click.ClickException as e:
+        raise MCPError(classify_click_error(e), e.message)
+
+    out = diff_to_dict(staged.diff)
+    out['rendered_diff'] = staged.rendered_diff
+    out['xlsx_path'] = str(staged.xlsx_path)
+    out['xlsx_sha256'] = staged.xlsx_sha256
+
+    if not staged.diff.is_empty():
+        save_session(
+            proj.reimport_session_path,
+            ReimportSession(
+                xlsx_path=str(staged.xlsx_path),
+                xlsx_sha256=staged.xlsx_sha256,
+                diff_summary=staged.rendered_diff,
+                created_at=datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+
+    return out
+
+
+def do_reimport_apply(project: str, archive: bool = False) -> Dict[str, Any]:
+    """Complete a previously staged re-import."""
+    from claudesheets.reimport import apply_session
+
+    proj = _open_project(project)
+    buf = io.StringIO()
+    try:
+        with redirect_stdout(buf):
+            apply_session(proj, archive=archive, flatten=False)
+    except click.ClickException as e:
+        raise MCPError(classify_click_error(e), e.message)
+    return _ok(buf.getvalue().strip() or 'Staged re-import applied.')
+
+
+def do_reimport_abort(project: str) -> Dict[str, Any]:
+    """Discard a previously staged re-import session."""
+    from claudesheets.reimport import clear_session
+
+    proj = _open_project(project)
+    clear_session(proj.reimport_session_path)
+    return _ok('Re-import session cleared.')
+
+
 def build_server() -> FastMCP:
     """Construct and return the claudesheets MCP server."""
     mcp = FastMCP('claudesheets')
@@ -213,4 +281,7 @@ def build_server() -> FastMCP:
     mcp.tool()(do_recalc)
     mcp.tool()(do_snapshot)
     mcp.tool()(do_test)
+    mcp.tool()(do_reimport_stage)
+    mcp.tool()(do_reimport_apply)
+    mcp.tool()(do_reimport_abort)
     return mcp
