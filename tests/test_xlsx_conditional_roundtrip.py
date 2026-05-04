@@ -11,8 +11,8 @@ from openpyxl.formatting.rule import (
 from openpyxl.styles import PatternFill
 from testsweet import test
 
-from claudesheets.xlsx.reader import read_xlsx
-from claudesheets.xlsx.writer import write_xlsx
+from sheetwright.xlsx.reader import read_xlsx
+from sheetwright.xlsx.writer import write_xlsx
 
 
 @contextmanager
@@ -65,7 +65,7 @@ def _wb_with_color_scale(path: Path) -> None:
 
 @test
 def cell_is_rule_round_trips():
-    from claudesheets.model.conditional import CellIsRule
+    from sheetwright.model.conditional import CellIsRule
 
     with _tmp_path() as tmp_path:
         src = tmp_path / 'in.xlsx'
@@ -83,7 +83,7 @@ def cell_is_rule_round_trips():
 
 @test
 def formula_rule_round_trips():
-    from claudesheets.model.conditional import FormulaRule
+    from sheetwright.model.conditional import FormulaRule
 
     with _tmp_path() as tmp_path:
         src = tmp_path / 'in.xlsx'
@@ -100,7 +100,7 @@ def formula_rule_round_trips():
 
 @test
 def color_scale_rule_round_trips():
-    from claudesheets.model.conditional import ColorScaleRule
+    from sheetwright.model.conditional import ColorScaleRule
 
     with _tmp_path() as tmp_path:
         src = tmp_path / 'in.xlsx'

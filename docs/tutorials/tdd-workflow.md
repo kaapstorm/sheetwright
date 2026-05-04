@@ -23,9 +23,9 @@ declares *what should be true*; refactors must preserve it.
 
 1. Write the test against an output cell. Don't write the formula
    yet.
-2. Run `claudesheets test`. Watch it fail.
+2. Run `sheetwright test`. Watch it fail.
 3. Edit the source (`sheets/<n>_<slug>.md` or `.yaml`).
-4. Run `claudesheets build && claudesheets test`. Watch it pass.
+4. Run `sheetwright build && sheetwright test`. Watch it pass.
 5. Commit.
 
 ## Worked example
@@ -42,7 +42,7 @@ import math
 
 from testsweet import test, test_params
 
-from claudesheets.testing import Model
+from sheetwright.testing import Model
 
 
 @test
@@ -73,7 +73,7 @@ def post_tax_profit_scales(rate, tax, revenue):
 ### Step 2: run, watch it fail
 
 ```bash
-$ claudesheets test
+$ sheetwright test
 tests/test_post_tax_profit.py::post_tax_profit_at_default_inputs ... ERROR: RuntimeError: calc engine omitted formula cell Outputs!C1
 ```
 
@@ -94,7 +94,7 @@ Add column C to `sheets/02_outputs.md`:
 ### Step 4: rebuild and retest
 
 ```bash
-$ claudesheets build && claudesheets test
+$ sheetwright build && sheetwright test
 Built build/my-revenue-model.xlsx
 tests/test_post_tax_profit.py::post_tax_profit_at_default_inputs ... ok
 tests/test_post_tax_profit.py::post_tax_profit_scales[rate=0.0,tax=0.21,revenue=1000000] ... ok
@@ -120,7 +120,7 @@ Claude Code runs the loop happily. A productive prompt:
 > Add a "post-tax profit" column to `sheets/02_outputs.md` as
 > column C. Write a test in `tests/test_post_tax_profit.py` that
 > asserts the value at `Outputs!C1` when growth rate is 0% and tax
-> rate is 21%. Run `claudesheets test` and iterate until it passes.
+> rate is 21%. Run `sheetwright test` and iterate until it passes.
 
 Claude can:
 
@@ -128,7 +128,7 @@ Claude can:
 - Write the test in the right shape (testsweet `@test` /
   `@test_params`, `Model.open('.')`).
 - Edit the markdown table and rebuild.
-- Run `claudesheets test` and react to the output.
+- Run `sheetwright test` and react to the output.
 
 The text-source format makes all of this normal-code work for
 Claude — it's reading and editing files, not tickling an Excel API.

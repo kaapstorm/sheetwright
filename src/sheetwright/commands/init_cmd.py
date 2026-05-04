@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-DEFAULT_CLAUDESHEETS_TOML = """\
+DEFAULT_SHEETWRIGHT_TOML = """\
 [project]
 name = "my-model"
 
@@ -45,7 +45,7 @@ def run(path: str) -> None:
     (project / 'data').mkdir()
     (project / 'tests').mkdir()
     (project / 'tests' / '__init__.py').write_text('')
-    (project / 'sheetwright.toml').write_text(DEFAULT_CLAUDESHEETS_TOML)
+    (project / 'sheetwright.toml').write_text(DEFAULT_SHEETWRIGHT_TOML)
     (project / 'workbook.toml').write_text(DEFAULT_WORKBOOK_TOML)
     (project / '.gitignore').write_text(DEFAULT_GITIGNORE)
 

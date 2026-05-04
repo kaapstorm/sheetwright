@@ -5,7 +5,7 @@ from pathlib import Path
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
+from sheetwright.cli import main
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -18,7 +18,7 @@ def _staged_project():
         write_simple_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -46,7 +46,7 @@ def _staged_project():
             main, ['import', str(new_src), '-I', '--project', str(p)]
         )
         assert r.exit_code == 0
-        assert (p / '.claudesheets' / 'reimport.json').is_file()
+        assert (p / '.sheetwright' / 'reimport.json').is_file()
         yield p
 
 
@@ -58,7 +58,7 @@ def apply_writes_staged_changes_to_source():
         r = runner.invoke(main, ['import', '--apply', '--project', str(p)])
         assert r.exit_code == 0, r.output
         assert '0.99' in md.read_text()
-        assert not (p / '.claudesheets' / 'reimport.json').is_file()
+        assert not (p / '.sheetwright' / 'reimport.json').is_file()
 
 
 @test
@@ -70,7 +70,7 @@ def abort_clears_session_and_does_not_change_source():
         r = runner.invoke(main, ['import', '--abort', '--project', str(p)])
         assert r.exit_code == 0
         assert md.read_text() == before
-        assert not (p / '.claudesheets' / 'reimport.json').is_file()
+        assert not (p / '.sheetwright' / 'reimport.json').is_file()
 
 
 @test
@@ -78,7 +78,7 @@ def apply_refuses_when_staged_xlsx_modified():
     with _staged_project() as p:
         import json
 
-        sess = json.loads((p / '.claudesheets' / 'reimport.json').read_text())
+        sess = json.loads((p / '.sheetwright' / 'reimport.json').read_text())
         staged_xlsx = Path(sess['xlsx_path'])
         staged_xlsx.write_bytes(staged_xlsx.read_bytes() + b' ')
 

@@ -1,13 +1,13 @@
 # MCP server
 
-claudesheets ships an MCP (Model Context Protocol) server that
+sheetwright ships an MCP (Model Context Protocol) server that
 exposes every CLI command as a typed tool. Launch it with
-`claudesheets mcp`; the server runs over stdio and stays alive until
+`sheetwright mcp`; the server runs over stdio and stays alive until
 the client closes the connection.
 
 ## Wiring
 
-Most MCP clients launch `claudesheets mcp` as a subprocess and route
+Most MCP clients launch `sheetwright mcp` as a subprocess and route
 MCP traffic over stdin/stdout. For Claude Desktop, add to
 `~/Library/Application Support/Claude/claude_desktop_config.json`
 (macOS) or the equivalent on your platform:
@@ -15,9 +15,9 @@ MCP traffic over stdin/stdout. For Claude Desktop, add to
 ```json
 {
   "mcpServers": {
-    "claudesheets": {
+    "sheetwright": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/your/model", "claudesheets", "mcp"]
+      "args": ["run", "--directory", "/path/to/your/model", "sheetwright", "mcp"]
     }
   }
 }
@@ -26,10 +26,10 @@ MCP traffic over stdin/stdout. For Claude Desktop, add to
 For a generic stdio MCP client:
 
 ```bash
-claudesheets mcp
+sheetwright mcp
 ```
 
-The tools all accept a `project` argument (path to a claudesheets
+The tools all accept a `project` argument (path to a sheetwright
 project) so a single server can drive multiple projects sequentially.
 
 ## Tools
@@ -41,7 +41,7 @@ confirming the server is alive.
 
 ### `do_init(path: str)`
 
-Scaffold an empty claudesheets project at `path`.
+Scaffold an empty sheetwright project at `path`.
 
 Returns: `{ok: bool, message: str}`.
 
@@ -143,7 +143,7 @@ Errors: `project_not_found`, `click_error`.
 ### `do_reimport_stage(xlsx, project, flatten=False, force=False)`
 
 Compute and stage a re-import diff. If the diff is non-empty, saves
-a session under `.claudesheets/reimport.json` that
+a session under `.sheetwright/reimport.json` that
 `do_reimport_apply` can later commit.
 
 Returns:
@@ -190,7 +190,7 @@ stable; clients can branch on them. The full list:
 
 | Code | Meaning |
 | --- | --- |
-| `project_not_found` | The path is not a claudesheets project (no `claudesheets.toml`). |
+| `project_not_found` | The path is not a sheetwright project (no `sheetwright.toml`). |
 | `external_refs` | The xlsx has cross-workbook references and `flatten=False`. |
 | `uncommitted_source` | `sheets/` has uncommitted git changes; pass `force=True` to skip. |
 | `build_missing` | No `build/<name>.xlsx`; run `do_build` first. |
@@ -199,7 +199,7 @@ stable; clients can branch on them. The full list:
 | `reimport_required` | `do_import_xlsx` against a populated source dir; use `do_reimport_*` instead. |
 | `click_error` | Unrecognised CLI error; check `message`. |
 
-The codes are defined in `src/claudesheets/mcp/errors.py`. Adding a
+The codes are defined in `src/sheetwright/mcp/errors.py`. Adding a
 new one is a one-line change in `classify_click_error` once a real
 client wants to branch on it.
 
@@ -207,9 +207,9 @@ client wants to branch on it.
 
 The server exposes 12 tools (one per command, plus the three
 re-import operations and `do_ping`). Tool definitions live in
-`src/claudesheets/mcp/server.py`. The server is built with
+`src/sheetwright/mcp/server.py`. The server is built with
 `fastmcp` and is a thin facade over `commands/<name>.run` and the
-pure helpers in `claudesheets.diff` / `claudesheets.reimport`.
+pure helpers in `sheetwright.diff` / `sheetwright.reimport`.
 
 A typical Claude-driven session looks like:
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.reimport.session import (
+from sheetwright.reimport.session import (
     ReimportSession,
     clear_session,
     load_session,

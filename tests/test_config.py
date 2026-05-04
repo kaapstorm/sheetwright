@@ -1,6 +1,6 @@
 from testsweet import test
 
-from claudesheets.config import (
+from sheetwright.config import (
     ProjectConfig,
     WorkbookManifest,
     dump_project,
@@ -8,7 +8,7 @@ from claudesheets.config import (
     load_project,
     load_workbook,
 )
-from claudesheets.model.workbook import NamedRange
+from sheetwright.model.workbook import NamedRange
 
 
 @test

@@ -4,11 +4,11 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.xlsx.flatten import (
+from sheetwright.xlsx.flatten import (
     detect_external_refs,
     flatten_external_refs,
 )
-from claudesheets.xlsx.reader import read_xlsx
+from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.external_xlsx import write_xlsx_with_external_ref
 
 

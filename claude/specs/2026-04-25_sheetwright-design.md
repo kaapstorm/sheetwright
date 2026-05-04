@@ -1,4 +1,4 @@
-# claudesheets — design
+# sheetwright — design
 
 ## Purpose
 
@@ -15,7 +15,7 @@ does not give the economist a TDD or git-style workflow, and inherits the
 fundamental problems of `.xlsx` as a source format: zipped XML is not
 diffable, mergeable, or grep-able.
 
-claudesheets takes a different approach: **`.xlsx` is a build artifact, not
+sheetwright takes a different approach: **`.xlsx` is a build artifact, not
 the source of truth.** The source of truth is a directory of text and CSV
 files (with optional cached SQLite for fast queries). Claude Code edits the
 source; a build step compiles it to `.xlsx` and a calc engine evaluates it.
@@ -79,11 +79,11 @@ mechanism — the official APIs above are dramatically more reliable.
 
 ### Source format
 
-A claudesheets project is a directory:
+A sheetwright project is a directory:
 
 ```
 my-model/
-├── claudesheets.toml          # project config: build settings, calc-engine choice
+├── sheetwright.toml          # project config: build settings, calc-engine choice
 ├── workbook.toml              # workbook-level: sheet order, named ranges, defined names
 ├── sheets/
 │   ├── 01_assumptions.md      # one file per sheet — Markdown table for values
@@ -99,7 +99,7 @@ my-model/
 │   └── *.py                   # Testsweet tests
 ├── imports/                   # optional, opt-in: archived imported xlsx files
 ├── build/                     # gitignored: built .xlsx
-└── .claudesheets/             # gitignored: built bulk.sqlite, calc cache
+└── .sheetwright/             # gitignored: built bulk.sqlite, calc cache
 ```
 
 **Per-sheet `.md` file:** Markdown table holding values and references to
@@ -119,7 +119,7 @@ lives.
 styles.
 
 **Bulk data:** CSV in `data/`. The build step loads CSVs into a cached
-SQLite at `.claudesheets/bulk.sqlite` for fast SQL access during recalc. The
+SQLite at `.sheetwright/bulk.sqlite` for fast SQL access during recalc. The
 SQLite is gitignored — it's a build artifact, rebuilt deterministically from
 CSV. Optional `_schema.sql` provides types and indexes. Bulk-data use is
 opt-in per sheet (a sheet can declare `source: data/cpi_series.csv` and
@@ -129,8 +129,8 @@ draw values from it); small sheets stay fully in `.md`.
 
 | Versioned                                    | Ignored                                  |
 |----------------------------------------------|------------------------------------------|
-| `claudesheets.toml`, `workbook.toml`         | `build/` (built xlsx)                    |
-| `sheets/*.md`, `sheets/*.yaml`               | `.claudesheets/` (built SQLite, caches)  |
+| `sheetwright.toml`, `workbook.toml`         | `build/` (built xlsx)                    |
+| `sheets/*.md`, `sheets/*.yaml`               | `.sheetwright/` (built SQLite, caches)  |
 | `data/*.csv`, `data/_schema.sql`             |                                          |
 | `tests/*.py`                                 |                                          |
 | `imports/*.xlsx` (opt-in via `--archive`)    |                                          |
@@ -140,7 +140,7 @@ draw values from it); small sheets stay fully in `.md`.
 ### Initial onboarding (existing xlsx)
 
 ```
-claudesheets import path/to/her-model.xlsx [--archive]
+sheetwright import path/to/her-model.xlsx [--archive]
 ```
 
 Reads the xlsx, populates `sheets/`, `workbook.toml`, and `data/`. With
@@ -151,7 +151,7 @@ traceability. External references in the imported xlsx error by default;
 ### Greenfield project
 
 ```
-claudesheets init my-model
+sheetwright init my-model
 ```
 
 Scaffolds an empty project. Claude builds it up from scratch in conversation.
@@ -162,12 +162,12 @@ Claude edits source files directly with Read/Edit/Write — no fine-grained
 mutator commands. The CLI surface stays coarse so source files are the API.
 
 ```
-claudesheets build              # compile sources -> build/my-model.xlsx
-claudesheets recalc             # run calc engine, cache calculated values
-claudesheets test [-k pattern]  # run Testsweet tests
-claudesheets snapshot [--update]  # golden-file regression of all calculated outputs
-claudesheets diff [--vs xlsx:<path>]  # semantic diff
-claudesheets check              # lint: dangling refs, missing names, schema mismatches
+sheetwright build              # compile sources -> build/my-model.xlsx
+sheetwright recalc             # run calc engine, cache calculated values
+sheetwright test [-k pattern]  # run Testsweet tests
+sheetwright snapshot [--update]  # golden-file regression of all calculated outputs
+sheetwright diff [--vs xlsx:<path>]  # semantic diff
+sheetwright check              # lint: dangling refs, missing names, schema mismatches
 ```
 
 `recalc` is a separate command (not implicit in `build` or `test`) so a future
@@ -184,7 +184,7 @@ import math
 
 from testsweet import test
 
-from claudesheets.testing import Model
+from sheetwright.testing import Model
 
 
 @test
@@ -196,15 +196,15 @@ def revenue_grows_with_assumption():
     )
 ```
 
-A small `claudesheets.testing` library exposes `Model.set/get/recalc` over
+A small `sheetwright.testing` library exposes `Model.set/get/recalc` over
 the chosen calc engine. [Testsweet](https://github.com/kaapstorm/testsweet)
 does the heavy lifting; tests are explicit Python — no name-prefix
 discovery, no fixture injection.
 
-**Complementary path: golden-file snapshots.** `claudesheets snapshot`
+**Complementary path: golden-file snapshots.** `sheetwright snapshot`
 computes all formula-cell outputs and compares to a checked-in golden file.
 Catches regressions broadly. Snapshots are reviewed and accepted by running
-`claudesheets snapshot --update`. The economist confirms calculated outputs
+`sheetwright snapshot --update`. The economist confirms calculated outputs
 in the rebuilt workbook; Claude updates snapshots after she signs off.
 
 ### Escape hatch: economist edits the xlsx directly
@@ -213,11 +213,11 @@ The economist will sometimes edit `build/my-model.xlsx` directly between
 Claude sessions. Documentation will recommend against this, but it must work.
 
 **Detection.** `build` records the hash of the xlsx it produced. Any
-subsequent claudesheets command checks the hash; if the file has changed,
+subsequent sheetwright command checks the hash; if the file has changed,
 it warns:
 
 > `build/my-model.xlsx` has been modified externally. Run
-> `claudesheets import build/my-model.xlsx` to review changes.
+> `sheetwright import build/my-model.xlsx` to review changes.
 
 **Re-import flow.** Same `import` command as initial onboarding. When source
 is non-empty, `import` becomes a review-first merge:
@@ -254,7 +254,7 @@ offering the option to back out to Overwrite or Reject.
 
 ### CLI
 
-`claudesheets <command>`. Single binary, source of truth for behaviour.
+`sheetwright <command>`. Single binary, source of truth for behaviour.
 
 | Command                  | Purpose                                              |
 |--------------------------|------------------------------------------------------|
@@ -282,7 +282,7 @@ a terminal.
   works. A semantic diff command sits on top, computing impact via the calc
   engine.
 - **Replacing Excel.** The economist's deliverable is still an `.xlsx`.
-  claudesheets is plumbing.
+  sheetwright is plumbing.
 
 ## Open questions for v2
 

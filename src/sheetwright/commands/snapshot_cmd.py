@@ -31,7 +31,7 @@ def run(*, project_path: str, update: bool) -> None:
 
     warn_if_externally_edited(project)
 
-    cfg = load_project(project.claudesheets_toml.read_text())
+    cfg = load_project(project.sheetwright_toml.read_text())
     built = project.build_dir / f'{cfg.name}.xlsx'
     if not built.is_file():
         raise click.ClickException(

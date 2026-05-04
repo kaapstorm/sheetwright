@@ -6,7 +6,7 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.mcp.server import do_recalc, do_snapshot, do_test
+from sheetwright.mcp.server import do_recalc, do_snapshot, do_test
 from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
 
@@ -19,7 +19,7 @@ def _built():
         write_simple_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -30,7 +30,7 @@ def _built():
         (p / 'tests').mkdir()
         from click.testing import CliRunner
 
-        from claudesheets.cli import main
+        from sheetwright.cli import main
 
         CliRunner().invoke(main, ['import', str(src), '--project', str(p)])
         CliRunner().invoke(main, ['build', '--project', str(p)])
@@ -43,7 +43,7 @@ def recalc_tool_runs_engine_and_caches():
     with _built() as p:
         out = do_recalc(project=str(p), force=False)
         assert out['ok'] is True
-        cache_files = list((p / '.claudesheets' / 'calc').glob('*.json'))
+        cache_files = list((p / '.sheetwright' / 'calc').glob('*.json'))
         assert len(cache_files) == 1
 
 

@@ -5,8 +5,8 @@ from pathlib import Path
 import openpyxl
 from testsweet import test
 
-from claudesheets.xlsx.reader import read_xlsx
-from claudesheets.xlsx.writer import write_xlsx
+from sheetwright.xlsx.reader import read_xlsx
+from sheetwright.xlsx.writer import write_xlsx
 
 
 @contextmanager

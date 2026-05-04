@@ -1,16 +1,16 @@
 from testsweet import test
 
-from claudesheets.model.cell import Cell
-from claudesheets.model.format import (
+from sheetwright.model.cell import Cell
+from sheetwright.model.format import (
     Border,
     CellFormat,
     Fill,
     Font,
     Side,
 )
-from claudesheets.model.validation import DataValidation
-from claudesheets.model.workbook import Sheet
-from claudesheets.source.yaml_sidecar import dump_yaml, load_yaml
+from sheetwright.model.validation import DataValidation
+from sheetwright.model.workbook import Sheet
+from sheetwright.source.yaml_sidecar import dump_yaml, load_yaml
 
 
 def _make_sheet() -> Sheet:

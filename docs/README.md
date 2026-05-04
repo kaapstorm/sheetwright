@@ -1,7 +1,7 @@
-# claudesheets manual
+# sheetwright manual
 
-claudesheets treats `.xlsx` as a build artifact compiled from text
-sources. You write Markdown tables and YAML sidecars; claudesheets
+sheetwright treats `.xlsx` as a build artifact compiled from text
+sources. You write Markdown tables and YAML sidecars; sheetwright
 produces a workbook, runs LibreOffice (or another calc engine) to
 evaluate every formula, and lets you assert on the results from
 ordinary Python tests. The aim: spreadsheets that you can review in a
@@ -18,7 +18,7 @@ pull request, regression-test in CI, and edit alongside Claude Code.
 - [CLI](reference/cli.md) — every command and flag.
 - [Source format](reference/source-format.md) — on-disk layout, the
   Markdown table format, the YAML sidecar, and the two manifests.
-- [Testing](reference/testing.md) — `claudesheets.testing.Model` and
+- [Testing](reference/testing.md) — `sheetwright.testing.Model` and
   testsweet patterns.
 - [MCP server](reference/mcp.md) — typed tools, return shapes, error
   codes, and how to wire it into a client.
@@ -50,7 +50,7 @@ pull request, regression-test in CI, and edit alongside Claude Code.
 ## Why
 
 The design rationale lives in
-`claude/specs/2026-04-25_claudesheets-design.md`. The short version:
+`claude/specs/2026-04-25_sheetwright-design.md`. The short version:
 spreadsheets are software, but they're missing diff, review, and
-tests. claudesheets fills in the missing tooling without forcing you
+tests. sheetwright fills in the missing tooling without forcing you
 off Excel.

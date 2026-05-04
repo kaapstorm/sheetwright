@@ -5,8 +5,8 @@ from pathlib import Path
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
-from claudesheets.xlsx.reader import read_xlsx
+from sheetwright.cli import main
+from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_tier2_xlsx
 
@@ -19,7 +19,7 @@ def _project():
         write_tier2_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -37,7 +37,7 @@ def _project():
 
 @test
 def tier2_round_trips_through_cli():
-    from claudesheets.model.conditional import (
+    from sheetwright.model.conditional import (
         CellIsRule,
         ColorScaleRule,
     )
@@ -67,7 +67,7 @@ def tier2_round_trips_through_cli():
 @test
 @requires_libreoffice
 def tier2_built_xlsx_evaluates_under_libreoffice():
-    from claudesheets.calc.libreoffice import LibreOfficeEngine
+    from sheetwright.calc.libreoffice import LibreOfficeEngine
 
     with _project() as p:
         built = p / 'build' / 'in.xlsx'

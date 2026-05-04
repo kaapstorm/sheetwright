@@ -1,13 +1,13 @@
 from testsweet import test
 
-from claudesheets.diff.check import CheckIssue
-from claudesheets.diff.compute import diff_workbooks
-from claudesheets.mcp.shaping import (
+from sheetwright.diff.check import CheckIssue
+from sheetwright.diff.compute import diff_workbooks
+from sheetwright.mcp.shaping import (
     check_issues_to_dicts,
     diff_to_dict,
 )
-from claudesheets.model.cell import Cell
-from claudesheets.model.workbook import Sheet, Workbook
+from sheetwright.model.cell import Cell
+from sheetwright.model.workbook import Sheet, Workbook
 
 
 def _wb() -> Workbook:

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.calc.cache import (
+from sheetwright.calc.cache import (
     cache_path_for,
     hash_xlsx,
     read_cached,

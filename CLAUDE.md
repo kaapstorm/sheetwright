@@ -2,7 +2,7 @@
 
 ## Layout
 
-- `src/claudesheets/` — library + CLI entry points
+- `src/sheetwright/` — library + CLI entry points
 - `tests/` — pytest tests, mirroring the package layout
 - `claude/specs/` — design specifications
 - `claude/plans/` — implementation plans (when written)
@@ -62,14 +62,15 @@ def workbook():
 
 ```python
 from unmagic import use
-from claudesheets.testing.fixtures import workbook
+from sheetwright.testing.fixtures import workbook
+
 
 @use(workbook)
 def test_recalc_updates_outputs():
-    wb = workbook()
-    wb.set("Assumptions!growth_rate", 0.05)
-    wb.recalc()
-    assert wb.get("Outputs!revenue_2027") == 1_234_567
+  wb = workbook()
+  wb.set("Assumptions!growth_rate", 0.05)
+  wb.recalc()
+  assert wb.get("Outputs!revenue_2027") == 1_234_567
 ```
 
 The shorthand `@workbook` is equivalent to `@use(workbook)` for a single
@@ -101,7 +102,7 @@ class-shaped.
   explicit-import contract is uniform across the codebase.
 - Don't put shared fixtures in `conftest.py` and rely on pytest's
   auto-discovery to wire them up. Put them in a regular module
-  (e.g. `claudesheets.testing.fixtures` or `tests/fixtures.py`) and
+  (e.g. `sheetwright.testing.fixtures` or `tests/fixtures.py`) and
   import them where used.
 - Don't pass fixture names as parameters expecting pytest to inject
   them — that's the magic pytest-unmagic exists to avoid.

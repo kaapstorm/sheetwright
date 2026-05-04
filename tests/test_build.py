@@ -5,8 +5,8 @@ from pathlib import Path
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
-from claudesheets.xlsx.reader import read_xlsx
+from sheetwright.cli import main
+from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -18,7 +18,7 @@ def _imported_project():
         write_simple_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(

@@ -1,6 +1,6 @@
 # Importing an existing workbook
 
-Onboard an existing `.xlsx` into a claudesheets project.
+Onboard an existing `.xlsx` into a sheetwright project.
 
 ## 1. Prepare a directory
 
@@ -9,14 +9,14 @@ mkdir my-model
 cd my-model
 ```
 
-`claudesheets import` creates the project files (`claudesheets.toml`,
+`sheetwright import` creates the project files (`sheetwright.toml`,
 `workbook.toml`, `sheets/`, `data/`) at the target path; it does
 not need `init` to have run first.
 
 ## 2. Import
 
 ```bash
-$ claudesheets import path/to/legacy-model.xlsx --archive
+$ sheetwright import path/to/legacy-model.xlsx --archive
 Imported path/to/legacy-model.xlsx into /home/you/my-model
 ```
 
@@ -33,7 +33,7 @@ After import, the project layout is fully populated:
 
 ```
 my-model/
-├── claudesheets.toml
+├── sheetwright.toml
 ├── workbook.toml
 ├── sheets/
 │   ├── 01_assumptions.md
@@ -56,7 +56,7 @@ git add .
 git commit -m "Import legacy-model.xlsx"
 ```
 
-`build/` and `.claudesheets/` are gitignored by default. `imports/`
+`build/` and `.sheetwright/` are gitignored by default. `imports/`
 is committed so reviewers can see the source xlsx alongside the
 derived text.
 
@@ -65,15 +65,15 @@ derived text.
 Build the xlsx back and diff against the original:
 
 ```bash
-$ claudesheets build
+$ sheetwright build
 Built build/my-model.xlsx
 
-$ claudesheets diff --vs xlsx:imports/2026-04-30T10-12-00_legacy-model.xlsx
+$ sheetwright diff --vs xlsx:imports/2026-04-30T10-12-00_legacy-model.xlsx
 ```
 
 Exit code 0 means the round-trip is lossless: source → xlsx is the
 inverse of xlsx → source. Any output describes cells that
-serialised differently — usually a sign of a feature claudesheets
+serialised differently — usually a sign of a feature sheetwright
 doesn't support (yet) or a quirk in the original xlsx (e.g.
 zero-width whitespace in a string).
 
@@ -88,7 +88,7 @@ import math
 
 from testsweet import test
 
-from claudesheets.testing import Model
+from sheetwright.testing import Model
 
 
 @test
@@ -102,7 +102,7 @@ def revenue_matches_imported_workbook():
 Run it:
 
 ```bash
-$ claudesheets test
+$ sheetwright test
 tests/test_smoke.py::revenue_matches_imported_workbook ... ok
 ```
 
@@ -112,13 +112,13 @@ useful baseline before you start refactoring.
 ## 6. Snapshot the rest
 
 ```bash
-$ claudesheets snapshot
+$ sheetwright snapshot
 initialized snapshot at tests/snapshots/my-model.json
 ```
 
 The snapshot covers *every* formula cell. From now on, any change
 that perturbs a calculated value shows up in
-`claudesheets snapshot` output. See [snapshots
+`sheetwright snapshot` output. See [snapshots
 tutorial](snapshots.md).
 
 ## External references
@@ -127,7 +127,7 @@ If your workbook contains formulas that read from other workbooks,
 import refuses by default:
 
 ```
-$ claudesheets import legacy.xlsx
+$ sheetwright import legacy.xlsx
 Error: Workbook contains external references; pass --flatten to
 replace them with cached values, or resolve them in Excel before
 importing.
@@ -139,11 +139,11 @@ Two options:
 1. **Resolve in Excel first.** Open the workbook in Excel, paste-
    special the linked ranges as values, save, and re-import. This
    is the cleanest path; the resulting source is self-contained.
-2. **`--flatten`.** Tell claudesheets to replace external-reference
+2. **`--flatten`.** Tell sheetwright to replace external-reference
    formulas with their last cached values:
 
    ```bash
-   claudesheets import legacy.xlsx --flatten --archive
+   sheetwright import legacy.xlsx --flatten --archive
    ```
 
    The structural shape of formulas that *internally* used the
@@ -153,7 +153,7 @@ Two options:
 ## Re-importing after edits
 
 If a colleague edits `build/my-model.xlsx` directly in Excel and
-saves changes, claudesheets won't lose those edits — but it does
+saves changes, sheetwright won't lose those edits — but it does
 make you reconcile them. The re-import flow detects the divergence,
 shows a diff, and asks how to merge. See [escape hatch](escape-hatch.md)
 for that workflow.

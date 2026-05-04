@@ -6,8 +6,8 @@ from pathlib import Path
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.project import Project
-from claudesheets.reimport.flow import StagedReimport, stage_reimport
+from sheetwright.project import Project
+from sheetwright.reimport.flow import StagedReimport, stage_reimport
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -19,7 +19,7 @@ def _populated():
         write_simple_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -29,7 +29,7 @@ def _populated():
         (p / 'data').mkdir()
         from click.testing import CliRunner
 
-        from claudesheets.cli import main
+        from sheetwright.cli import main
 
         CliRunner().invoke(main, ['import', str(src), '--project', str(p)])
         yield tmp_path, p, src

@@ -1,7 +1,7 @@
 from testsweet import catch_exceptions, test
 
-from claudesheets.model.workbook import NamedRange, Sheet, Workbook
-from claudesheets.testing.addresses import parse_address
+from sheetwright.model.workbook import NamedRange, Sheet, Workbook
+from sheetwright.testing.addresses import parse_address
 
 
 def _wb_with_named(name: str, ref: str) -> Workbook:

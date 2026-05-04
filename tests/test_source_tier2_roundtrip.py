@@ -3,16 +3,16 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.source.reader import read_source
-from claudesheets.source.writer import write_source
-from claudesheets.xlsx.reader import read_xlsx
+from sheetwright.source.reader import read_source
+from sheetwright.source.writer import write_source
+from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.workbooks import write_tier2_xlsx
 
 
 def _project_dir(tmp_path: Path) -> Path:
     p = tmp_path / 'proj'
     p.mkdir()
-    (p / 'claudesheets.toml').write_text(
+    (p / 'sheetwright.toml').write_text(
         '[project]\nname = "x"\n[build]\ncalc_engine = "libreoffice"\n'
     )
     (p / 'workbook.toml').write_text('[workbook]\nname = "x"\nsheets = []\n')

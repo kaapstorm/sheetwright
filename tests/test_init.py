@@ -5,7 +5,7 @@ from pathlib import Path
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
+from sheetwright.cli import main
 
 
 @contextmanager
@@ -21,7 +21,7 @@ def init_creates_project_skeleton():
         result = runner.invoke(main, ['init', str(project)])
         assert result.exit_code == 0, result.output
 
-        assert (project / 'claudesheets.toml').is_file()
+        assert (project / 'sheetwright.toml').is_file()
         assert (project / 'workbook.toml').is_file()
         assert (project / 'sheets').is_dir()
         assert (project / 'data').is_dir()
@@ -31,7 +31,7 @@ def init_creates_project_skeleton():
 
         gitignore = (project / '.gitignore').read_text()
         assert 'build/' in gitignore
-        assert '.claudesheets/' in gitignore
+        assert '.sheetwright/' in gitignore
 
 
 @test

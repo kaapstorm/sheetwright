@@ -4,9 +4,9 @@ from pathlib import Path
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
-from claudesheets.model.workbook import Workbook
-from claudesheets.xlsx.reader import read_xlsx
+from sheetwright.cli import main
+from sheetwright.model.workbook import Workbook
+from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.workbooks import (
     write_formatted_xlsx,
     write_simple_xlsx,
@@ -19,7 +19,7 @@ def _round_trip(tmp_path: Path, builder) -> Workbook:
     builder(src)
     project = tmp_path / 'proj'
     project.mkdir()
-    (project / 'claudesheets.toml').write_text(
+    (project / 'sheetwright.toml').write_text(
         '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
     )
     (project / 'workbook.toml').write_text(

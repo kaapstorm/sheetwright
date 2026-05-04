@@ -4,8 +4,8 @@ from pathlib import Path
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.mcp.errors import MCPError
-from claudesheets.mcp.server import (
+from sheetwright.mcp.errors import MCPError
+from sheetwright.mcp.server import (
     do_reimport_abort,
     do_reimport_apply,
     do_reimport_stage,
@@ -21,7 +21,7 @@ def _populated():
         write_simple_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -31,7 +31,7 @@ def _populated():
         (p / 'data').mkdir()
         from click.testing import CliRunner
 
-        from claudesheets.cli import main
+        from sheetwright.cli import main
 
         CliRunner().invoke(main, ['import', str(src), '--project', str(p)])
         yield tmp_path, p, src
@@ -56,7 +56,7 @@ def reimport_stage_returns_empty_for_unchanged_xlsx():
             xlsx=str(src), project=str(p), flatten=False, force=False
         )
         assert out['is_empty'] is True
-        assert not (p / '.claudesheets' / 'reimport.json').is_file()
+        assert not (p / '.sheetwright' / 'reimport.json').is_file()
 
 
 @test
@@ -69,13 +69,13 @@ def reimport_stage_then_apply():
             xlsx=str(new_src), project=str(p), flatten=False, force=False
         )
         assert staged['is_empty'] is False
-        assert (p / '.claudesheets' / 'reimport.json').is_file()
+        assert (p / '.sheetwright' / 'reimport.json').is_file()
 
         out = do_reimport_apply(project=str(p), archive=False)
         assert out['ok'] is True
         md = p / 'sheets' / '01_inputs.md'
         assert '0.99' in md.read_text()
-        assert not (p / '.claudesheets' / 'reimport.json').is_file()
+        assert not (p / '.sheetwright' / 'reimport.json').is_file()
 
 
 @test
@@ -89,7 +89,7 @@ def reimport_abort_clears_session():
         )
         out = do_reimport_abort(project=str(p))
         assert out['ok'] is True
-        assert not (p / '.claudesheets' / 'reimport.json').is_file()
+        assert not (p / '.sheetwright' / 'reimport.json').is_file()
 
 
 @test
@@ -112,13 +112,13 @@ def reimport_stage_then_restage_with_no_changes_clears_session():
         do_reimport_stage(
             xlsx=str(new_src), project=str(p), flatten=False, force=False
         )
-        assert (p / '.claudesheets' / 'reimport.json').is_file()
+        assert (p / '.sheetwright' / 'reimport.json').is_file()
 
         out = do_reimport_stage(
             xlsx=str(src), project=str(p), flatten=False, force=False
         )
         assert out['is_empty'] is True
-        assert not (p / '.claudesheets' / 'reimport.json').is_file()
+        assert not (p / '.sheetwright' / 'reimport.json').is_file()
 
 
 @test

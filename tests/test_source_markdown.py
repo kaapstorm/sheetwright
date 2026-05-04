@@ -1,8 +1,8 @@
 from testsweet import test
 
-from claudesheets.model.cell import Cell
-from claudesheets.model.workbook import Sheet
-from claudesheets.source.markdown import dump_table, load_table
+from sheetwright.model.cell import Cell
+from sheetwright.model.workbook import Sheet
+from sheetwright.source.markdown import dump_table, load_table
 
 
 @test

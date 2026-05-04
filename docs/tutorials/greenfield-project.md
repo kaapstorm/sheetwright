@@ -7,12 +7,12 @@ snapshot.
 ## 1. Scaffold
 
 ```bash
-$ claudesheets init my-revenue-model
-Initialised claudesheets project at /home/you/my-revenue-model
+$ sheetwright init my-revenue-model
+Initialised sheetwright project at /home/you/my-revenue-model
 $ cd my-revenue-model
 ```
 
-The default scaffold gives you `claudesheets.toml`, `workbook.toml`,
+The default scaffold gives you `sheetwright.toml`, `workbook.toml`,
 empty `sheets/` and `data/` directories, an empty `tests/__init__.py`,
 and a `.gitignore`. See [source format](../reference/source-format.md)
 for the full layout.
@@ -98,7 +98,7 @@ for the full schema.
 ## 6. Build
 
 ```bash
-$ claudesheets build
+$ sheetwright build
 Built /home/you/my-revenue-model/build/my-revenue-model.xlsx
 ```
 
@@ -108,8 +108,8 @@ deterministic — re-running produces a byte-identical file.
 ## 7. Recalc
 
 ```bash
-$ claudesheets recalc
-recalculated: .claudesheets/calc/4f1a9c2e8b7d.json
+$ sheetwright recalc
+recalculated: .sheetwright/calc/4f1a9c2e8b7d.json
 ```
 
 `recalc` invokes LibreOffice headless against `build/<name>.xlsx`,
@@ -117,7 +117,7 @@ collects calculated values, and caches them keyed by the xlsx's
 SHA-256. A second `recalc` with no source changes is instant:
 
 ```bash
-$ claudesheets recalc
+$ sheetwright recalc
 cache hit: 4f1a9c2e8b7d
 ```
 
@@ -126,7 +126,7 @@ See [calc engine](../reference/calc-engine.md) for cache details.
 ## 8. Lint
 
 ```bash
-$ claudesheets check
+$ sheetwright check
 no issues
 ```
 
@@ -143,7 +143,7 @@ import math
 
 from testsweet import test, test_params
 
-from claudesheets.testing import Model
+from sheetwright.testing import Model
 
 
 @test
@@ -168,7 +168,7 @@ def revenue_y1_scales_with_growth(rate, expected):
 Run:
 
 ```bash
-$ claudesheets test
+$ sheetwright test
 tests/test_revenue.py::revenue_y1_at_default_growth_rate ... ok
 tests/test_revenue.py::revenue_y1_scales_with_growth[rate=0.0,expected=1000000] ... ok
 tests/test_revenue.py::revenue_y1_scales_with_growth[rate=0.05,expected=1050000] ... ok
@@ -180,7 +180,7 @@ See [testing reference](../reference/testing.md) for the full API.
 ## 10. Snapshot
 
 ```bash
-$ claudesheets snapshot
+$ sheetwright snapshot
 initialized snapshot at tests/snapshots/my-revenue-model.json
 ```
 
@@ -188,14 +188,14 @@ The snapshot captures every formula cell's calculated value.
 Subsequent runs diff against it:
 
 ```bash
-$ claudesheets snapshot
+$ sheetwright snapshot
 no changes
 ```
 
 If you change a formula and the calculated outputs drift:
 
 ```bash
-$ claudesheets snapshot
+$ sheetwright snapshot
   Outputs!B1: 1040000.0 -> 1052000.0
   Outputs!B2: 1081600.0 -> 1106104.0
 ```
@@ -203,7 +203,7 @@ $ claudesheets snapshot
 Exit code 1. Either fix the regression, or accept it:
 
 ```bash
-$ claudesheets snapshot --update
+$ sheetwright snapshot --update
 updated snapshot at tests/snapshots/my-revenue-model.json
 ```
 
@@ -213,18 +213,18 @@ See [snapshots tutorial](snapshots.md) for the full workflow.
 
 ```bash
 git init
-git add claudesheets.toml workbook.toml sheets/ tests/ .gitignore
+git add sheetwright.toml workbook.toml sheets/ tests/ .gitignore
 git commit -m "Initial revenue model"
 ```
 
-`build/` and `.claudesheets/` are ignored by default.
+`build/` and `.sheetwright/` are ignored by default.
 
 ## 12. Hand off the xlsx
 
-When you're ready to share with non-claudesheets users:
+When you're ready to share with non-sheetwright users:
 
 ```bash
-claudesheets build
+sheetwright build
 cp build/my-revenue-model.xlsx /path/to/share/
 ```
 

@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
+from sheetwright.cli import main
 
 
 @test

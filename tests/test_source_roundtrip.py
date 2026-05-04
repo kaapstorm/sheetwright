@@ -3,12 +3,12 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.model.cell import Cell
-from claudesheets.model.format import CellFormat, Font
-from claudesheets.model.validation import DataValidation
-from claudesheets.model.workbook import NamedRange, Sheet, Workbook
-from claudesheets.source.reader import read_source
-from claudesheets.source.writer import write_source
+from sheetwright.model.cell import Cell
+from sheetwright.model.format import CellFormat, Font
+from sheetwright.model.validation import DataValidation
+from sheetwright.model.workbook import NamedRange, Sheet, Workbook
+from sheetwright.source.reader import read_source
+from sheetwright.source.writer import write_source
 
 
 def _make_workbook() -> Workbook:

@@ -1,12 +1,12 @@
 from testsweet import test
 
-from claudesheets.mcp.server import build_server, do_ping
+from sheetwright.mcp.server import build_server, do_ping
 
 
 @test
 def build_server_returns_a_fastmcp_instance():
     server = build_server()
-    assert server.name == 'claudesheets'
+    assert server.name == 'sheetwright'
 
 
 @test

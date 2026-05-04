@@ -5,7 +5,7 @@ from pathlib import Path
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
+from sheetwright.cli import main
 
 
 _PASS_TEST = """\
@@ -33,7 +33,7 @@ def _project_with_tests():
         tmp_path = Path(td)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "x"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -88,7 +88,7 @@ def test_command_errors_when_tests_dir_missing():
         tmp_path = Path(td)
         p = tmp_path / 'no-tests'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "x"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(

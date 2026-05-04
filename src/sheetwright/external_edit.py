@@ -20,7 +20,7 @@ def warn_if_externally_edited(project: Project) -> None:
     rec = read_build_hash(project.build_hash_path)
     if rec is None:
         return
-    cfg = load_project(project.claudesheets_toml.read_text())
+    cfg = load_project(project.sheetwright_toml.read_text())
 
     if rec.name != cfg.name:
         click.echo(

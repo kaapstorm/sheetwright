@@ -6,7 +6,7 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.bulk import build_bulk_cache, table_name_for
+from sheetwright.bulk import build_bulk_cache, table_name_for
 
 
 @contextmanager
@@ -15,7 +15,7 @@ def _project():
         tmp_path = Path(td)
         proj = tmp_path / 'p'
         (proj / 'data').mkdir(parents=True)
-        (proj / '.claudesheets').mkdir(parents=True)
+        (proj / '.sheetwright').mkdir(parents=True)
         yield proj
 
 

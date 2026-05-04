@@ -5,7 +5,7 @@ from pathlib import Path
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
+from sheetwright.cli import main
 from tests.fixtures.workbooks import write_formatted_xlsx, write_simple_xlsx
 
 
@@ -15,7 +15,7 @@ def _project():
         tmp_path = Path(td)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "x"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(

@@ -1,9 +1,9 @@
 from testsweet import test
 
-from claudesheets.diff import diff_workbooks
-from claudesheets.diff.format import render
-from claudesheets.model.cell import Cell
-from claudesheets.model.workbook import NamedRange, Sheet, Workbook
+from sheetwright.diff import diff_workbooks
+from sheetwright.diff.format import render
+from sheetwright.model.cell import Cell
+from sheetwright.model.workbook import NamedRange, Sheet, Workbook
 
 
 def _wb() -> Workbook:

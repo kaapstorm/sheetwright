@@ -2,8 +2,8 @@ from datetime import datetime
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.model.cell import Cell
-from claudesheets.model.workbook import NamedRange, Sheet, Workbook
+from sheetwright.model.cell import Cell
+from sheetwright.model.workbook import NamedRange, Sheet, Workbook
 
 
 @test

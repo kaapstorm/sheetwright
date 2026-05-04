@@ -3,7 +3,7 @@ from pathlib import Path
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.calc import CalcEngine, CalcResult, get_calc_engine
+from sheetwright.calc import CalcEngine, CalcResult, get_calc_engine
 
 
 @test

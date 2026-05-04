@@ -1,8 +1,8 @@
 # CLI reference
 
-Every claudesheets command, every flag.
+Every sheetwright command, every flag.
 
-The CLI is invoked as `claudesheets` (or `uv run claudesheets`). Most
+The CLI is invoked as `sheetwright` (or `uv run sheetwright`). Most
 commands take `--project <path>` to point at a project directory;
 the default is `.`. All commands return exit code 0 on success;
 `diff` and `check` use a non-zero exit to signal "differences" or
@@ -10,23 +10,23 @@ the default is `.`. All commands return exit code 0 on success;
 
 ## `init`
 
-Scaffold an empty claudesheets project.
+Scaffold an empty sheetwright project.
 
 ```
-claudesheets init [PATH]
+sheetwright init [PATH]
 ```
 
 | Flag | Description |
 | --- | --- |
 | `PATH` | Directory to create. Defaults to `.`. Must be empty if it exists. |
 
-Creates `claudesheets.toml`, `workbook.toml`, `sheets/`, `data/`,
+Creates `sheetwright.toml`, `workbook.toml`, `sheets/`, `data/`,
 `tests/__init__.py`, and a `.gitignore` covering `build/` and
-`.claudesheets/`.
+`.sheetwright/`.
 
 ```bash
-claudesheets init my-model
-claudesheets init .
+sheetwright init my-model
+sheetwright init .
 ```
 
 ## `import`
@@ -35,7 +35,7 @@ Read an `.xlsx` into source form, or merge updates into an existing
 project.
 
 ```
-claudesheets import [XLSX] [OPTIONS]
+sheetwright import [XLSX] [OPTIONS]
 ```
 
 | Flag | Description |
@@ -51,7 +51,7 @@ claudesheets import [XLSX] [OPTIONS]
 
 The behaviour depends on whether `sheets/` is already populated:
 
-- **First import** (`sheets/` is empty): writes `claudesheets.toml`,
+- **First import** (`sheets/` is empty): writes `sheetwright.toml`,
   `workbook.toml`, the `.md`/`.yaml` sidecars, and exits.
 - **Re-import** (`sheets/` is non-empty): computes a diff, prints it,
   then either prompts interactively (Merge / Overwrite / Reject) or
@@ -61,20 +61,20 @@ Examples:
 
 ```bash
 # Initial import
-claudesheets import path/to/model.xlsx --archive
+sheetwright import path/to/model.xlsx --archive
 
 # Initial import, dropping cross-workbook links
-claudesheets import path/to/model.xlsx --flatten
+sheetwright import path/to/model.xlsx --flatten
 
 # Interactive re-import after a colleague edited build/my-model.xlsx
-claudesheets import build/my-model.xlsx
+sheetwright import build/my-model.xlsx
 
 # Non-interactive re-import for CI: stage, review, then apply
-claudesheets import build/my-model.xlsx -I
+sheetwright import build/my-model.xlsx -I
 git diff   # review the printed diff
-claudesheets import --apply
+sheetwright import --apply
 # or
-claudesheets import --abort
+sheetwright import --abort
 ```
 
 The re-import flow is documented in [escape
@@ -85,7 +85,7 @@ hatch](../tutorials/escape-hatch.md).
 Compile source files into an `.xlsx`.
 
 ```
-claudesheets build [OPTIONS]
+sheetwright build [OPTIONS]
 ```
 
 | Flag | Description |
@@ -94,16 +94,16 @@ claudesheets build [OPTIONS]
 | `--project PATH` | Project directory. Defaults to `.`. |
 
 ```bash
-claudesheets build
-claudesheets build --out /tmp/preview.xlsx
+sheetwright build
+sheetwright build --out /tmp/preview.xlsx
 ```
 
 `build` also runs the bulk-data step: every `data/*.csv` is loaded
-into `.claudesheets/bulk.sqlite`. The xlsx writer is deterministic —
+into `.sheetwright/bulk.sqlite`. The xlsx writer is deterministic —
 re-building from unchanged source produces a byte-identical file.
 
-After a successful build, claudesheets records the xlsx's SHA-256 in
-`.claudesheets/build-hash.json`. Other commands use this to detect
+After a successful build, sheetwright records the xlsx's SHA-256 in
+`.sheetwright/build-hash.json`. Other commands use this to detect
 external edits to the built file (see
 [escape hatch](../tutorials/escape-hatch.md)).
 
@@ -113,7 +113,7 @@ Run the calc engine against the built xlsx and cache the calculated
 values.
 
 ```
-claudesheets recalc [OPTIONS]
+sheetwright recalc [OPTIONS]
 ```
 
 | Flag | Description |
@@ -122,8 +122,8 @@ claudesheets recalc [OPTIONS]
 | `--project PATH` | Project directory. Defaults to `.`. |
 
 ```bash
-claudesheets recalc
-claudesheets recalc --force
+sheetwright recalc
+sheetwright recalc --force
 ```
 
 The cache is keyed by the SHA-256 of the built xlsx. A change to
@@ -139,7 +139,7 @@ stderr before running. The warning does not change the exit code.
 Run the project's testsweet tests.
 
 ```
-claudesheets test [TARGETS...] [OPTIONS]
+sheetwright test [TARGETS...] [OPTIONS]
 ```
 
 | Flag | Description |
@@ -148,9 +148,9 @@ claudesheets test [TARGETS...] [OPTIONS]
 | `--project PATH` | Project directory. Defaults to `.`. |
 
 ```bash
-claudesheets test
-claudesheets test tests/test_revenue.py
-claudesheets test tests/integration/
+sheetwright test
+sheetwright test tests/test_revenue.py
+sheetwright test tests/integration/
 ```
 
 `test` discovers `tests/test_*.py` files and imports each under a
@@ -167,7 +167,7 @@ See [testing reference](testing.md) for the test-author API.
 Compare or update the golden-file snapshot of calculated values.
 
 ```
-claudesheets snapshot [OPTIONS]
+sheetwright snapshot [OPTIONS]
 ```
 
 | Flag | Description |
@@ -176,8 +176,8 @@ claudesheets snapshot [OPTIONS]
 | `--project PATH` | Project directory. Defaults to `.`. |
 
 ```bash
-claudesheets snapshot           # diff vs saved snapshot
-claudesheets snapshot --update  # overwrite the saved snapshot
+sheetwright snapshot           # diff vs saved snapshot
+sheetwright snapshot --update  # overwrite the saved snapshot
 ```
 
 Snapshots cover formula cells only — literal inputs are intentionally
@@ -193,7 +193,7 @@ See [snapshots tutorial](../tutorials/snapshots.md).
 Show a semantic diff between source and a target workbook.
 
 ```
-claudesheets diff [OPTIONS]
+sheetwright diff [OPTIONS]
 ```
 
 | Flag | Description |
@@ -202,9 +202,9 @@ claudesheets diff [OPTIONS]
 | `--project PATH` | Project directory. Defaults to `.`. |
 
 ```bash
-claudesheets diff
-claudesheets diff --vs xlsx:other.xlsx
-claudesheets diff --vs source:../other-project
+sheetwright diff
+sheetwright diff --vs xlsx:other.xlsx
+sheetwright diff --vs source:../other-project
 ```
 
 Exit code 0 if there are no differences, 1 otherwise. Useful in CI
@@ -215,7 +215,7 @@ to assert "the built xlsx matches source" or "two projects agree."
 Lint dangling refs, missing names, and schema mismatches.
 
 ```
-claudesheets check [OPTIONS]
+sheetwright check [OPTIONS]
 ```
 
 | Flag | Description |
@@ -223,7 +223,7 @@ claudesheets check [OPTIONS]
 | `--project PATH` | Project directory. Defaults to `.`. |
 
 ```bash
-claudesheets check
+sheetwright check
 ```
 
 Exit code 0 if there are no issues, 1 otherwise. Issue kinds:
@@ -242,7 +242,7 @@ Exit code 0 if there are no issues, 1 otherwise. Issue kinds:
 Run the MCP server on stdio.
 
 ```
-claudesheets mcp
+sheetwright mcp
 ```
 
 No flags. The process stays alive until the client closes the

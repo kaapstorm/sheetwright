@@ -2,7 +2,7 @@
 
 Golden-file regression for calculated outputs. A snapshot captures
 every formula cell's value; a future change that perturbs any of
-them surfaces in `claudesheets snapshot` output.
+them surfaces in `sheetwright snapshot` output.
 
 ## When to use snapshots
 
@@ -27,7 +27,7 @@ checked into git.
 The first run creates the file:
 
 ```bash
-$ claudesheets snapshot
+$ sheetwright snapshot
 initialized snapshot at tests/snapshots/my-revenue-model.json
 ```
 
@@ -54,7 +54,7 @@ git commit -m "Initial snapshot"
 ## Subsequent runs
 
 ```bash
-$ claudesheets snapshot
+$ sheetwright snapshot
 no changes
 ```
 
@@ -63,7 +63,7 @@ Exit code 0 — the calculation matches the committed snapshot.
 When something changes:
 
 ```bash
-$ claudesheets snapshot
+$ sheetwright snapshot
   Outputs!B1: 1040000.0 -> 1052000.0
   Outputs!B2: 1081600.0 -> 1106104.0
   Outputs!C1: 821600.0 -> 831080.0
@@ -86,8 +86,8 @@ decide, and either revert your change or accept the new outputs.
 The CLI prints a flat list. For larger diffs, review the JSON itself:
 
 ```bash
-$ claudesheets snapshot       # see what's different
-$ claudesheets snapshot --update
+$ sheetwright snapshot       # see what's different
+$ sheetwright snapshot --update
 $ git diff tests/snapshots/   # full structured view in the diff
 ```
 
@@ -97,7 +97,7 @@ git diff treats it as text.
 ## Accepting a change
 
 ```bash
-$ claudesheets snapshot --update
+$ sheetwright snapshot --update
 updated snapshot at tests/snapshots/my-revenue-model.json
 ```
 
@@ -108,10 +108,10 @@ Always inspect with `git diff` before committing.
 
 ```yaml
 # .github/workflows/check.yml
-- run: claudesheets build
-- run: claudesheets recalc
-- run: claudesheets snapshot
-- run: claudesheets test
+- run: sheetwright build
+- run: sheetwright recalc
+- run: sheetwright snapshot
+- run: sheetwright test
 ```
 
 `snapshot` exits 1 on diffs, which fails the job. Combined with
@@ -131,7 +131,7 @@ Under the hood:
    round-trips preserve equality).
 5. It compares to the saved file on disk.
 
-The cache is shared with `claudesheets recalc`: if you've already
+The cache is shared with `sheetwright recalc`: if you've already
 recalc'd, snapshot is instant.
 
 ## Pairing with tests

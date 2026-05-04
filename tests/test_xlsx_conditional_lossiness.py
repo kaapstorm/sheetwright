@@ -16,9 +16,9 @@ from openpyxl.styles import Border, Color, Font, PatternFill, Side
 from openpyxl.styles.differential import DifferentialStyle
 from testsweet import test
 
-from claudesheets.model.conditional import CellIsRule
-from claudesheets.xlsx.reader import read_xlsx
-from claudesheets.xlsx.writer import write_xlsx
+from sheetwright.model.conditional import CellIsRule
+from sheetwright.xlsx.reader import read_xlsx
+from sheetwright.xlsx.writer import write_xlsx
 
 
 @contextmanager

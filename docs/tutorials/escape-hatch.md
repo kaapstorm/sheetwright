@@ -3,9 +3,9 @@
 Sometimes someone edits `build/<name>.xlsx` directly. A colleague
 opens it in Excel, drags a few values around, hits save. Or you do.
 That edit is now in the build artefact but not in `sheets/`, and a
-`claudesheets build` would silently overwrite it.
+`sheetwright build` would silently overwrite it.
 
-claudesheets detects this and gives you a structured way to merge
+sheetwright detects this and gives you a structured way to merge
 the edit back into source.
 
 ## 1. Detection
@@ -13,23 +13,23 @@ the edit back into source.
 The first command after the external edit warns:
 
 ```
-$ claudesheets recalc
+$ sheetwright recalc
 WARNING: build/my-model.xlsx has been modified externally.
-Run `claudesheets import build/my-model.xlsx` to review changes.
-recalculated: .claudesheets/calc/...
+Run `sheetwright import build/my-model.xlsx` to review changes.
+recalculated: .sheetwright/calc/...
 ```
 
 The warning goes to stderr; the command itself still runs (so you
 can poke around before deciding what to do).
 
-Detection works because `claudesheets build` records the SHA-256 of
-the produced xlsx in `.claudesheets/build-hash.json`. Any difference
+Detection works because `sheetwright build` records the SHA-256 of
+the produced xlsx in `.sheetwright/build-hash.json`. Any difference
 on a later command is the trigger.
 
 ## 2. Re-import (interactive)
 
 ```bash
-$ claudesheets import build/my-model.xlsx
+$ sheetwright import build/my-model.xlsx
 ```
 
 Output: a printed diff of every cell that changed (values,
@@ -50,24 +50,24 @@ until you either re-run import and merge, or rebuild from source
 (which restores the build hash):
 
 ```bash
-claudesheets build   # overwrites build/<name>.xlsx with the source view
+sheetwright build   # overwrites build/<name>.xlsx with the source view
 ```
 
 ## 3. Re-import (non-interactive, for CI / Claude)
 
 ```bash
-$ claudesheets import build/my-model.xlsx -I
+$ sheetwright import build/my-model.xlsx -I
 ... full diff printed ...
-Run `claudesheets import --apply` to apply, or `--abort` to discard.
+Run `sheetwright import --apply` to apply, or `--abort` to discard.
 ```
 
 `-I` (`--non-interactive`) stages the diff and exits. The session
-file is `.claudesheets/reimport.json`. Follow up:
+file is `.sheetwright/reimport.json`. Follow up:
 
 ```bash
-claudesheets import --apply   # accept the staged diff
+sheetwright import --apply   # accept the staged diff
 # or
-claudesheets import --abort   # discard
+sheetwright import --abort   # discard
 ```
 
 Between staging and applying, the staged xlsx is hashed; if it's
@@ -101,7 +101,7 @@ then resolve any merge conflict in normal git.
 To bypass:
 
 ```bash
-claudesheets import build/my-model.xlsx --force
+sheetwright import build/my-model.xlsx --force
 ```
 
 `--force` skips *only* the uncommitted-source guard. It does **not**
@@ -112,7 +112,7 @@ the merge / overwrite / reject prompt (or the `-I` staging flow).
 ## 5. Archiving the xlsx
 
 ```bash
-claudesheets import build/my-model.xlsx --archive
+sheetwright import build/my-model.xlsx --archive
 ```
 
 `--archive` copies the xlsx into `imports/<timestamp>_<name>.xlsx`
@@ -129,21 +129,21 @@ A realistic workflow:
 cp ~/Downloads/my-model.xlsx build/my-model.xlsx
 
 # 1. Verify what they changed.
-claudesheets diff --vs xlsx:build/my-model.xlsx
+sheetwright diff --vs xlsx:build/my-model.xlsx
 
 # 2. Stage the diff for review.
-claudesheets import build/my-model.xlsx -I --archive
+sheetwright import build/my-model.xlsx -I --archive
 
 # 3. Inspect the staged diff (rendered above; also
-#    saved in .claudesheets/reimport.json).
+#    saved in .sheetwright/reimport.json).
 
 # 4a. Accept.
-claudesheets import --apply
+sheetwright import --apply
 git add sheets/ imports/ workbook.toml
 git commit -m "Merge edits from colleague"
 
 # 4b. Or reject.
-claudesheets import --abort
+sheetwright import --abort
 ```
 
 ## 7. When you don't want this
@@ -153,7 +153,7 @@ xlsx being throwaway: never edit `build/`. The warning is the
 seatbelt; if you ignore the warning, just rebuild:
 
 ```bash
-claudesheets build   # source wins, xlsx restored
+sheetwright build   # source wins, xlsx restored
 ```
 
 The build-hash record is updated and the warning stops.

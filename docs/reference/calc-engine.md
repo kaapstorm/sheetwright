@@ -5,15 +5,14 @@ calculated values. The default backend is LibreOffice headless.
 
 ## The interface
 
-`claudesheets.calc.CalcEngine` is a one-method ABC:
+`sheetwright.calc.CalcEngine` is a one-method ABC:
 
 ```python
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict
 
-from claudesheets.model.cell import CellValue
-
+from sheetwright.model.cell import CellValue
 
 CalcResult = Dict[str, Dict[str, CellValue]]
 
@@ -33,7 +32,7 @@ result — `Model.get` raises if a formula cell is missing.
 
 ## Selecting an engine
 
-The engine is chosen per-project in `claudesheets.toml`:
+The engine is chosen per-project in `sheetwright.toml`:
 
 ```toml
 [build]
@@ -43,20 +42,20 @@ calc_engine = "libreoffice"
 `get_calc_engine(name)` is the registry:
 
 ```python
-from claudesheets.calc import get_calc_engine
+from sheetwright.calc import get_calc_engine
 
 engine = get_calc_engine('libreoffice')
 result = engine.evaluate(Path('build/my-model.xlsx'))
 ```
 
 Currently the only registered name is `libreoffice`. Adding more is
-a small addition to `claudesheets.calc.__init__.get_calc_engine` —
+a small addition to `sheetwright.calc.__init__.get_calc_engine` —
 or, for one-off use, you can pass a custom engine directly to
 `Model(workbook, engine)`.
 
 ## `LibreOfficeEngine`
 
-`claudesheets.calc.libreoffice.LibreOfficeEngine` shells out to
+`sheetwright.calc.libreoffice.LibreOfficeEngine` shells out to
 `soffice` (LibreOffice headless) to recalculate the file, then reads
 the resulting xlsx with openpyxl in `data_only=True` mode to harvest
 the cached calculated values.
@@ -113,7 +112,7 @@ duration of the `evaluate` call and is removed afterwards.
 re-running the engine when the built xlsx hasn't changed.
 
 - **Key:** SHA-256 of the built xlsx bytes.
-- **Path:** `.claudesheets/calc/<sha256>.json`.
+- **Path:** `.sheetwright/calc/<sha256>.json`.
 - **Format:**
 
   ```json
@@ -127,12 +126,12 @@ re-running the engine when the built xlsx hasn't changed.
   }
   ```
 
-The cache lives under `.claudesheets/`, which is gitignored by
-default. To force a recompute, use `claudesheets recalc --force`,
+The cache lives under `.sheetwright/`, which is gitignored by
+default. To force a recompute, use `sheetwright recalc --force`,
 or delete the file:
 
 ```bash
-rm .claudesheets/calc/<sha256>.json
+rm .sheetwright/calc/<sha256>.json
 ```
 
 The xlsx writer is deterministic, so a source change that produces
@@ -149,7 +148,7 @@ To add (say) an Excel-via-COM engine on Windows:
    ```python
    from pathlib import Path
 
-   from claudesheets.calc.base import CalcEngine, CalcResult
+   from sheetwright.calc.base import CalcEngine, CalcResult
 
 
    class ExcelComEngine(CalcEngine):
@@ -159,12 +158,12 @@ To add (say) an Excel-via-COM engine on Windows:
            return result
    ```
 
-2. Register it in `claudesheets.calc.get_calc_engine`:
+2. Register it in `sheetwright.calc.get_calc_engine`:
 
    ```python
    def get_calc_engine(name: str) -> CalcEngine:
        if name == 'libreoffice':
-           from claudesheets.calc.libreoffice import LibreOfficeEngine
+           from sheetwright.calc.libreoffice import LibreOfficeEngine
            return LibreOfficeEngine()
        if name == 'excel-com':
            from my_pkg.excel_com import ExcelComEngine
@@ -172,7 +171,7 @@ To add (say) an Excel-via-COM engine on Windows:
        raise ValueError(f'unknown calc engine: {name!r}')
    ```
 
-3. Reference it in your project's `claudesheets.toml`:
+3. Reference it in your project's `sheetwright.toml`:
 
    ```toml
    [build]
@@ -183,7 +182,7 @@ For one-off / test use, you can skip registration entirely and pass
 your engine directly to `Model`:
 
 ```python
-from claudesheets.testing import Model
+from sheetwright.testing import Model
 
 model = Model(workbook, ExcelComEngine())
 ```

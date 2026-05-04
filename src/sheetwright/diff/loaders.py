@@ -26,7 +26,7 @@ def load_target(project: Project, vs: Optional[str]) -> Workbook:
     Raises `click.ClickException` for caller-facing errors.
     """
     if vs is None:
-        cfg = load_project(project.claudesheets_toml.read_text())
+        cfg = load_project(project.sheetwright_toml.read_text())
         built = project.build_dir / f'{cfg.name}.xlsx'
         if not built.is_file():
             raise click.ClickException(

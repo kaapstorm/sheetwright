@@ -10,7 +10,7 @@ from testsweet import test
 @test
 def mcp_subcommand_exists_in_help():
     result = subprocess.run(
-        [sys.executable, '-m', 'claudesheets.cli', '--help'],
+        [sys.executable, '-m', 'sheetwright.cli', '--help'],
         capture_output=True,
         text=True,
         timeout=10,
@@ -21,7 +21,7 @@ def mcp_subcommand_exists_in_help():
 @test
 def mcp_subcommand_help_describes_stdio():
     result = subprocess.run(
-        [sys.executable, '-m', 'claudesheets.cli', 'mcp', '--help'],
+        [sys.executable, '-m', 'sheetwright.cli', 'mcp', '--help'],
         capture_output=True,
         text=True,
         timeout=10,
@@ -45,7 +45,7 @@ def mcp_server_responds_to_initialize_and_lists_tools():
     """Smoke test: launch the server, send initialize + tools/list,
     assert the registered tool names appear in the response."""
     proc = subprocess.Popen(
-        [sys.executable, '-m', 'claudesheets.cli', 'mcp'],
+        [sys.executable, '-m', 'sheetwright.cli', 'mcp'],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -137,7 +137,7 @@ def mcp_server_error_path_includes_code():
     is a JSON-RPC error.
     """
     proc = subprocess.Popen(
-        [sys.executable, '-m', 'claudesheets.cli', 'mcp'],
+        [sys.executable, '-m', 'sheetwright.cli', 'mcp'],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

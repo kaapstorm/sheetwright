@@ -4,8 +4,8 @@ from pathlib import Path
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.mcp.errors import MCPError
-from claudesheets.mcp.server import do_check, do_diff
+from sheetwright.mcp.errors import MCPError
+from sheetwright.mcp.server import do_check, do_diff
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -17,7 +17,7 @@ def _imported():
         write_simple_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -27,7 +27,7 @@ def _imported():
         (p / 'data').mkdir()
         from click.testing import CliRunner
 
-        from claudesheets.cli import main
+        from sheetwright.cli import main
 
         CliRunner().invoke(main, ['import', str(src), '--project', str(p)])
         CliRunner().invoke(main, ['build', '--project', str(p)])

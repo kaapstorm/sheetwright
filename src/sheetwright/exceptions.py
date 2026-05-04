@@ -1,17 +1,17 @@
 """Exception hierarchy for sheetwright."""
 
 
-class ClaudesheetsError(Exception):
+class SheetwrightError(Exception):
     """Base class for all sheetwright errors."""
 
 
-class ProjectError(ClaudesheetsError):
+class ProjectError(SheetwrightError):
     """A project-level error (missing config, malformed structure)."""
 
 
-class ImportError_(ClaudesheetsError):
+class ImportError_(SheetwrightError):
     """Errors during xlsx import."""
 
 
-class BuildError(ClaudesheetsError):
+class BuildError(SheetwrightError):
     """Errors during build."""

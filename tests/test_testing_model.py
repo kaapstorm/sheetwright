@@ -4,10 +4,10 @@ from pathlib import Path
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.calc.base import CalcEngine, CalcResult
-from claudesheets.model.cell import Cell
-from claudesheets.model.workbook import Sheet, Workbook
-from claudesheets.testing import Model
+from sheetwright.calc.base import CalcEngine, CalcResult
+from sheetwright.model.cell import Cell
+from sheetwright.model.workbook import Sheet, Workbook
+from sheetwright.testing import Model
 from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
 
@@ -20,7 +20,7 @@ def _project():
         write_simple_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -29,7 +29,7 @@ def _project():
         (p / 'sheets').mkdir()
         (p / 'data').mkdir()
         from click.testing import CliRunner
-        from claudesheets.cli import main
+        from sheetwright.cli import main
 
         r = CliRunner().invoke(main, ['import', str(src), '--project', str(p)])
         assert r.exit_code == 0

@@ -23,7 +23,7 @@ def run(*, project_path: str, out_path: str | None) -> None:
     except ProjectError as e:
         raise click.ClickException(str(e))
 
-    cfg = load_project(project.claudesheets_toml.read_text())
+    cfg = load_project(project.sheetwright_toml.read_text())
 
     wb = read_source(project.root)
     build_bulk_cache(project.root)

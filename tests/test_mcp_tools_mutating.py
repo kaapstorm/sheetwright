@@ -6,8 +6,8 @@ from pathlib import Path
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.mcp.errors import MCPError
-from claudesheets.mcp.server import do_build, do_import_xlsx, do_init
+from sheetwright.mcp.errors import MCPError
+from sheetwright.mcp.server import do_build, do_import_xlsx, do_init
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -17,7 +17,7 @@ def init_tool_creates_skeleton():
         target = Path(td) / 'fresh'
         out = do_init(path=str(target))
         assert out['ok'] is True
-        assert (target / 'claudesheets.toml').is_file()
+        assert (target / 'sheetwright.toml').is_file()
 
 
 @test
@@ -38,7 +38,7 @@ def _empty_project():
         tmp_path = Path(td)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(

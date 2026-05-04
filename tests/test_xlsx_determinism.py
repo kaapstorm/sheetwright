@@ -5,7 +5,7 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.xlsx.writer import write_xlsx
+from sheetwright.xlsx.writer import write_xlsx
 from tests.fixtures.workbooks import write_simple_xlsx
 
 
@@ -15,7 +15,7 @@ def _sha256(p: Path) -> str:
 
 @test
 def two_builds_of_same_workbook_are_byte_identical():
-    from claudesheets.xlsx.reader import read_xlsx
+    from sheetwright.xlsx.reader import read_xlsx
 
     with tempfile.TemporaryDirectory() as td:
         tmp_path = Path(td)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.xlsx.reader import read_xlsx
+from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.workbooks import write_simple_xlsx
 
 

@@ -20,7 +20,7 @@ class Project:
         return cls(root)
 
     @property
-    def claudesheets_toml(self) -> Path:
+    def sheetwright_toml(self) -> Path:
         return self.root / 'sheetwright.toml'
 
     @property

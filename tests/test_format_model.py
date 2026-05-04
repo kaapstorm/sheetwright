@@ -1,8 +1,8 @@
 from testsweet import test
 
-from claudesheets.model.cell import Cell
-from claudesheets.model.format import Border, CellFormat, Fill, Font, Side
-from claudesheets.model.workbook import Sheet
+from sheetwright.model.cell import Cell
+from sheetwright.model.format import Border, CellFormat, Fill, Font, Side
+from sheetwright.model.workbook import Sheet
 
 
 @test

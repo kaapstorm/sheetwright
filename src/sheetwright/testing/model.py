@@ -32,7 +32,7 @@ class Model:
     @classmethod
     def open(cls, project_path: str | Path) -> 'Model':
         project = Project.open(project_path)
-        cfg = load_project(project.claudesheets_toml.read_text())
+        cfg = load_project(project.sheetwright_toml.read_text())
         wb = read_source(project.root)
         return cls(wb, get_calc_engine(cfg.calc_engine))
 

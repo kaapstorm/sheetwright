@@ -5,9 +5,9 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.model.cell import Cell
-from claudesheets.model.workbook import Sheet, Workbook
-from claudesheets.snapshot import (
+from sheetwright.model.cell import Cell
+from sheetwright.model.workbook import Sheet, Workbook
+from sheetwright.snapshot import (
     Snapshot,
     diff_snapshots,
     snapshot_from_calc_result,

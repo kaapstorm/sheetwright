@@ -4,12 +4,12 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.diff.check import (
+from sheetwright.diff.check import (
     check_workbook,
 )
-from claudesheets.model.cell import Cell
-from claudesheets.model.workbook import NamedRange, Sheet, Workbook
-from claudesheets.project import Project
+from sheetwright.model.cell import Cell
+from sheetwright.model.workbook import NamedRange, Sheet, Workbook
+from sheetwright.project import Project
 
 
 @contextmanager
@@ -21,7 +21,7 @@ def _tmp_path():
 def _project(tmp_path: Path, sheets: list[str]) -> Project:
     p = tmp_path / 'proj'
     p.mkdir(exist_ok=True)
-    (p / 'claudesheets.toml').write_text(
+    (p / 'sheetwright.toml').write_text(
         '[project]\nname = "x"\n[build]\ncalc_engine = "libreoffice"\n'
     )
     sheets_toml = '\n'.join(f'    "{s}",' for s in sheets)
@@ -49,15 +49,15 @@ def clean_workbook_has_no_issues():
 
 @test
 def clean_after_real_import_has_no_issues():
-    """Regression: after `claudesheets import`, check_workbook
+    """Regression: after `sheetwright import`, check_workbook
     must not false-positive on the manifest/stem mismatch.
 
-    `claudesheets import` writes display names to workbook.toml and
+    `sheetwright import` writes display names to workbook.toml and
     files at `<NN>_<slug(name)>.md`. check_workbook should reconcile.
     """
     from click.testing import CliRunner
 
-    from claudesheets.cli import main
+    from sheetwright.cli import main
     from tests.fixtures.workbooks import write_simple_xlsx
 
     with _tmp_path() as tmp_path:
@@ -65,7 +65,7 @@ def clean_after_real_import_has_no_issues():
         write_simple_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -76,7 +76,7 @@ def clean_after_real_import_has_no_issues():
         CliRunner().invoke(main, ['import', str(src), '--project', str(p)])
 
         project = Project.open(p)
-        from claudesheets.source.reader import read_source
+        from sheetwright.source.reader import read_source
 
         wb = read_source(project.root)
         issues = check_workbook(wb, project)

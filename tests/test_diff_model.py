@@ -2,7 +2,7 @@ import dataclasses
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.diff.model import (
+from sheetwright.diff.model import (
     CellChange,
     NamedRangeChange,
     SheetDiff,

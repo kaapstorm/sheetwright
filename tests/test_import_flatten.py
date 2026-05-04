@@ -5,8 +5,8 @@ from pathlib import Path
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
-from claudesheets.source.reader import read_source
+from sheetwright.cli import main
+from sheetwright.source.reader import read_source
 from tests.fixtures.external_xlsx import write_xlsx_with_external_ref
 
 
@@ -16,7 +16,7 @@ def _empty_project():
         tmp_path = Path(td)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "ext"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(

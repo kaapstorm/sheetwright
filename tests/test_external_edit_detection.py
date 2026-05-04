@@ -5,7 +5,7 @@ from pathlib import Path
 from click.testing import CliRunner
 from testsweet import test
 
-from claudesheets.cli import main
+from sheetwright.cli import main
 from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
 
@@ -18,7 +18,7 @@ def _built():
         write_simple_xlsx(src)
         p = tmp_path / 'proj'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -58,7 +58,7 @@ def no_warning_when_no_record_yet():
         tmp_path = Path(td)
         p = tmp_path / 'fresh'
         p.mkdir()
-        (p / 'claudesheets.toml').write_text(
+        (p / 'sheetwright.toml').write_text(
             '[project]\nname = "in"\n[build]\ncalc_engine = "libreoffice"\n'
         )
         (p / 'workbook.toml').write_text(
@@ -74,7 +74,7 @@ def no_warning_when_no_record_yet():
 @test
 def warn_when_workbook_renamed_orphans_hash():
     with _built() as (_tmp, p):
-        cs_toml = p / 'claudesheets.toml'
+        cs_toml = p / 'sheetwright.toml'
         cs_toml.write_text(
             cs_toml.read_text().replace('name = "in"', 'name = "renamed"')
         )

@@ -9,9 +9,9 @@ __pycache__/
 .venv/
 .python-version.local
 
-# claudesheets build artifacts (per-project, but ignored at repo root too)
+# sheetwright build artifacts (per-project, but ignored at repo root too)
 build/
-.claudesheets/
+.sheetwright/
 
 # IDE / OS
 .vscode/

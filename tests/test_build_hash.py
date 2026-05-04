@@ -5,7 +5,7 @@ from pathlib import Path
 
 from testsweet import test
 
-from claudesheets.build_hash import (
+from sheetwright.build_hash import (
     BuildHashRecord,
     read_build_hash,
     write_build_hash,

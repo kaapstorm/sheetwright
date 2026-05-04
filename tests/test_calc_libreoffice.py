@@ -3,7 +3,7 @@ from pathlib import Path
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.calc.libreoffice import LibreOfficeEngine, LibreOfficeError
+from sheetwright.calc.libreoffice import LibreOfficeEngine, LibreOfficeError
 from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
 

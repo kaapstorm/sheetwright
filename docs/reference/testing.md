@@ -1,11 +1,11 @@
 # Testing reference
 
-The `claudesheets.testing` API plus testsweet patterns for asserting
+The `sheetwright.testing` API plus testsweet patterns for asserting
 on workbook outputs.
 
 ## `Model`
 
-`claudesheets.testing.Model` wraps a workbook plus a calc engine.
+`sheetwright.testing.Model` wraps a workbook plus a calc engine.
 `set` mutates the in-memory workbook and invalidates calculated
 values; `get` triggers a recalc on demand and returns the
 calculated value (or the literal value, for cells that aren't
@@ -14,11 +14,11 @@ formulas).
 ### `Model.open(project_path)`
 
 Load a project from disk and return a fresh `Model`. The project is
-read from `claudesheets.toml` and `workbook.toml`; the calc engine
-is selected by `claudesheets.toml`'s `build.calc_engine`.
+read from `sheetwright.toml` and `workbook.toml`; the calc engine
+is selected by `sheetwright.toml`'s `build.calc_engine`.
 
 ```python
-from claudesheets.testing import Model
+from sheetwright.testing import Model
 
 model = Model.open('.')
 ```
@@ -33,10 +33,10 @@ Construct directly when you want a hermetic in-memory test that
 doesn't read the filesystem.
 
 ```python
-from claudesheets.calc.base import CalcEngine, CalcResult
-from claudesheets.model.cell import Cell
-from claudesheets.model.workbook import Sheet, Workbook
-from claudesheets.testing import Model
+from sheetwright.calc.base import CalcEngine, CalcResult
+from sheetwright.model.cell import Cell
+from sheetwright.model.workbook import Sheet, Workbook
+from sheetwright.testing import Model
 
 
 class StubEngine(CalcEngine):
@@ -112,7 +112,7 @@ than values.
 
 ## testsweet patterns
 
-claudesheets uses [testsweet](https://github.com/kaapstorm/testsweet)
+sheetwright uses [testsweet](https://github.com/kaapstorm/testsweet)
 for tests, which differs from pytest in three ways relevant here:
 
 - `@test` is the function decorator (no implicit "function named
@@ -192,7 +192,7 @@ used.
 from unmagic import fixture, use
 from testsweet import test
 
-from claudesheets.testing import Model
+from sheetwright.testing import Model
 
 
 @fixture
@@ -229,7 +229,7 @@ import math
 
 from testsweet import test, test_params
 
-from claudesheets.testing import Model
+from sheetwright.testing import Model
 
 
 @test
@@ -258,7 +258,7 @@ def named_range_resolves_to_inputs_b1():
 Run with:
 
 ```bash
-claudesheets test
+sheetwright test
 ```
 
 Or, to use testsweet's own discovery:

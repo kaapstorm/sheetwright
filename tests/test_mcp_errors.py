@@ -1,7 +1,7 @@
 import click
 from testsweet import catch_exceptions, test
 
-from claudesheets.mcp.errors import MCPError, classify_click_error
+from sheetwright.mcp.errors import MCPError, classify_click_error
 
 
 @test
@@ -31,7 +31,7 @@ def classify_uncommitted():
 
 @test
 def classify_project_not_found():
-    e = click.ClickException('Not a claudesheets project: /nope')
+    e = click.ClickException('Not a sheetwright project: /nope')
     assert classify_click_error(e) == 'project_not_found'
 
 
@@ -44,7 +44,7 @@ def classify_build_missing():
 @test
 def classify_no_staged_session():
     e = click.ClickException(
-        'No staged re-import session. Run `claudesheets import <xlsx> -I`.'
+        'No staged re-import session. Run `sheetwright import <xlsx> -I`.'
     )
     assert classify_click_error(e) == 'no_staged_session'
 
@@ -52,7 +52,7 @@ def classify_no_staged_session():
 @test
 def classify_no_staged_session_still_works():
     e = click.ClickException(
-        'No staged re-import session. Run `claudesheets import <xlsx> -I` '
+        'No staged re-import session. Run `sheetwright import <xlsx> -I` '
         'first.'
     )
     assert classify_click_error(e) == 'no_staged_session'

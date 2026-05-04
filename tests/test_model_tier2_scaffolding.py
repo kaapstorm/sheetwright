@@ -2,16 +2,16 @@ import dataclasses
 
 from testsweet import catch_exceptions, test
 
-from claudesheets.model.comment import Comment
-from claudesheets.model.conditional import (
+from sheetwright.model.comment import Comment
+from sheetwright.model.conditional import (
     CellIsRule,
     ColorScaleRule,
     DataBarRule,
     FormulaRule,
     IconSetRule,
 )
-from claudesheets.model.table import ListTable, ListTableColumn
-from claudesheets.model.workbook import Sheet
+from sheetwright.model.table import ListTable, ListTableColumn
+from sheetwright.model.workbook import Sheet
 
 
 @test
