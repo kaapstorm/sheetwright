@@ -40,7 +40,7 @@ have it yet.
 ```python
 import math
 
-from testsweet import test, test_params
+from testsweet import params, test
 
 from sheetwright.testing import Model
 
@@ -55,10 +55,11 @@ def post_tax_profit_at_default_inputs():
     )
 
 
-@test_params([
-    {'rate': 0.00, 'tax': 0.21, 'revenue': 1_000_000},
-    {'rate': 0.05, 'tax': 0.21, 'revenue': 1_050_000},
-    {'rate': 0.05, 'tax': 0.30, 'revenue': 1_050_000},
+@test
+@params([
+    (0.00, 0.21, 1_000_000),
+    (0.05, 0.21, 1_050_000),
+    (0.05, 0.30, 1_050_000),
 ])
 def post_tax_profit_scales(rate, tax, revenue):
     model = Model.open('.')
@@ -126,7 +127,7 @@ Claude can:
 
 - Read your `sheets/` and `workbook.toml` to understand the layout.
 - Write the test in the right shape (testsweet `@test` /
-  `@test_params`, `Model.open('.')`).
+  `@params`, `Model.open('.')`).
 - Edit the markdown table and rebuild.
 - Run `sheetwright test` and react to the output.
 

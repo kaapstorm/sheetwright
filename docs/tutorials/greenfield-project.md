@@ -141,7 +141,7 @@ things around.
 ```python
 import math
 
-from testsweet import test, test_params
+from testsweet import params, test
 
 from sheetwright.testing import Model
 
@@ -154,10 +154,11 @@ def revenue_y1_at_default_growth_rate():
     )
 
 
-@test_params([
-    {'rate': 0.00, 'expected': 1_000_000},
-    {'rate': 0.05, 'expected': 1_050_000},
-    {'rate': 0.10, 'expected': 1_100_000},
+@test
+@params([
+    (0.00, 1_000_000),
+    (0.05, 1_050_000),
+    (0.10, 1_100_000),
 ])
 def revenue_y1_scales_with_growth(rate, expected):
     model = Model.open('.')

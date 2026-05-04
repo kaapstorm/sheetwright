@@ -135,24 +135,30 @@ def revenue_grows_with_assumption():
     assert math.isclose(model.get('Outputs!B1'), 1_050_000, rel_tol=1e-9)
 ```
 
-### `@test_params`
+### `@params`
 
-Run the same test body across multiple parameter sets:
+Run the same test body across multiple parameter sets. Stack with
+`@test` to register the function for discovery; each tuple in the
+iterable is unpacked as positional arguments:
 
 ```python
-from testsweet import test_params
+from testsweet import params, test
 
 
-@test_params([
-    {'rate': 0.00, 'expected': 1_000_000},
-    {'rate': 0.05, 'expected': 1_050_000},
-    {'rate': 0.10, 'expected': 1_100_000},
+@test
+@params([
+    (0.00, 1_000_000),
+    (0.05, 1_050_000),
+    (0.10, 1_100_000),
 ])
 def revenue_scales_linearly(rate, expected):
     model = Model.open('.')
     model.set('growth_rate', rate)
     assert math.isclose(model.get('Outputs!B1'), expected, rel_tol=1e-9)
 ```
+
+Use `@params_lazy` instead when the iterable is expensive to
+materialize and you want it consumed at run time.
 
 ### `catch_exceptions`
 
@@ -227,7 +233,7 @@ def warm_model():
 ```python
 import math
 
-from testsweet import test, test_params
+from testsweet import params, test
 
 from sheetwright.testing import Model
 
@@ -238,10 +244,11 @@ def baseline_revenue_at_default_growth_rate():
     assert math.isclose(model.get('Outputs!B1'), 1_040_000, rel_tol=1e-9)
 
 
-@test_params([
-    {'rate': 0.00, 'expected': 1_000_000},
-    {'rate': 0.05, 'expected': 1_050_000},
-    {'rate': 0.10, 'expected': 1_100_000},
+@test
+@params([
+    (0.00, 1_000_000),
+    (0.05, 1_050_000),
+    (0.10, 1_100_000),
 ])
 def revenue_scales_with_growth_rate(rate, expected):
     model = Model.open('.')
