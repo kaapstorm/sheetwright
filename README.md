@@ -13,10 +13,11 @@ for the design.
 
 ## Status
 
-Plan 4 complete: `diff`, `check`, build-hash detection, `--flatten`
-import, and the escape-hatch re-import flow (interactive and `-I`
-non-interactive). The MCP wrapper is the remaining v1 deliverable
-(Plan 5).
+Plan 5 complete: claudesheets is feature-complete for v1. The MCP
+wrapper exposes every CLI command as an MCP tool with typed
+inputs/outputs; `claudesheets mcp` launches the server on stdio.
+Future work (v2): watch-mode, source canonicalisation, JSON diff
+output, threaded-comments fidelity.
 
 ## Quick reference
 
@@ -141,6 +142,35 @@ claudesheets check                       # lint dangling refs, missing names
 
 `diff` exits 0 when there are no changes, 1 otherwise (CI-friendly).
 `check` exits 0 when there are no issues, 1 otherwise.
+
+## MCP server
+
+claudesheets ships with an MCP (Model Context Protocol) server that
+exposes every CLI command as a typed MCP tool, so Claude (or any
+MCP client) can drive a project programmatically.
+
+```bash
+claudesheets mcp
+```
+
+Tools:
+
+- `do_init(path)`
+- `do_import_xlsx(xlsx, project, archive=False, flatten=False)`
+- `do_build(project, out_path=None)`
+- `do_recalc(project, force=False)`
+- `do_snapshot(project, update=False)` — returns `{ok, message, has_diffs}`
+- `do_test(project, targets=[])` — returns `{passed, output}`
+- `do_diff(project, vs=None)` — returns `{is_empty, rendered, structured}`
+- `do_check(project)` — returns `{issues: [{kind, detail, location}, ...]}`
+- `do_reimport_stage(xlsx, project, flatten=False, force=False)` —
+  returns the diff and saves a session.
+- `do_reimport_apply(project, archive=False)` — completes a staged session.
+- `do_reimport_abort(project)` — discards a staged session.
+
+The server runs over stdio. Most MCP clients launch
+`claudesheets mcp` as a subprocess and route MCP traffic over
+stdin/stdout.
 
 ## License
 
