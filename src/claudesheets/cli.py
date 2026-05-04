@@ -209,5 +209,18 @@ def test_cmd(project_path: str, targets: tuple[str, ...]) -> None:
     run(project_path=project_path, targets=list(targets))
 
 
+@main.command('mcp')
+def mcp_cmd() -> None:
+    """Run the MCP server on stdio.
+
+    Most MCP clients launch this subcommand as a subprocess and
+    communicate via stdin/stdout. The server stays alive until the
+    client closes the connection.
+    """
+    from claudesheets.commands.mcp_cmd import run
+
+    run()
+
+
 if __name__ == '__main__':  # pragma: no cover
     sys.exit(main())
