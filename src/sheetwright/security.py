@@ -29,23 +29,17 @@ def resolve_under(root: Path, candidate: str | Path) -> Path:
 
     # Walk parents until we find an existing ancestor; resolve that;
     # re-attach the missing tail to handle non-existent paths.
+    # The loop always terminates because the filesystem root exists.
     parts: list[str] = []
     current = target
     while True:
         if current.exists():
             resolved = current.resolve()
-            # Re-attach the non-existent suffix
             for part in reversed(parts):
                 resolved = resolved / part
             break
         parts.append(current.name)
-        parent = current.parent
-        if parent == current:
-            # Reached filesystem root without finding an existing node;
-            # fall back to resolving what we have (no symlink collapsing).
-            resolved = target
-            break
-        current = parent
+        current = current.parent
 
     if not resolved.is_relative_to(root_resolved):
         raise PathOutsideProjectError(

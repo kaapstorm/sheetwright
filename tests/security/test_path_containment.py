@@ -91,3 +91,14 @@ def non_existent_path_under_root_is_accepted():
         result = resolve_under(root, 'newdir/newfile.xlsx')
         assert result == root / 'newdir' / 'newfile.xlsx'
         assert not result.exists()
+
+
+@test
+def deeply_nested_non_existent_path_is_accepted():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        # None of a/b/c/d exist; the parent-walk must reach root (which
+        # exists) and re-attach the missing suffix correctly.
+        result = resolve_under(root, 'a/b/c/d/e.xlsx')
+        assert result == root.resolve() / 'a' / 'b' / 'c' / 'd' / 'e.xlsx'
+        assert not result.exists()

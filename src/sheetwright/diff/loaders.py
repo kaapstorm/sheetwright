@@ -30,13 +30,36 @@ def parse_vs_target(vs: str) -> VsTarget:
     existing behaviour at the CLI seam.)
     """
     if vs.startswith('xlsx:'):
-        return VsTarget(kind='xlsx', path=Path(vs[len('xlsx:') :]))
+        return VsTarget(kind='xlsx', path=Path(vs.removeprefix('xlsx:')))
     if vs.startswith('source:'):
-        return VsTarget(kind='source', path=Path(vs[len('source:') :]))
+        return VsTarget(kind='source', path=Path(vs.removeprefix('source:')))
     raise click.ClickException(
         f'Invalid --vs target: {vs!r}. Expected '
         f'"xlsx:<path>" or "source:<path>".'
     )
+
+
+def load_parsed_target(
+    project: Project, target: Optional[VsTarget], *, limits: SecurityLimits
+) -> Workbook:
+    """Resolve the diff target from a pre-parsed `VsTarget`.
+
+    `target` is `None` (compare to `build/<name>.xlsx`) or a
+    `VsTarget` produced by `parse_vs_target`.
+
+    Raises `click.ClickException` for caller-facing errors.
+    """
+    if target is None:
+        built = project.build_dir / f'{project.config.name}.xlsx'
+        if not built.is_file():
+            raise click.ClickException(
+                f'No built xlsx at {built}. Run `sheetwright build` '
+                f'first, or pass --vs.'
+            )
+        return read_xlsx(built, limits=limits)
+    if target.kind == 'xlsx':
+        return read_xlsx(target.path, limits=limits)
+    return read_source(target.path)
 
 
 def load_target(project: Project, vs: Optional[str]) -> Workbook:
@@ -50,15 +73,5 @@ def load_target(project: Project, vs: Optional[str]) -> Workbook:
     limits = SecurityLimits.effective(
         get_operator_limits(), project.config.security
     )
-    if vs is None:
-        built = project.build_dir / f'{project.config.name}.xlsx'
-        if not built.is_file():
-            raise click.ClickException(
-                f'No built xlsx at {built}. Run `sheetwright build` '
-                f'first, or pass --vs.'
-            )
-        return read_xlsx(built, limits=limits)
-    target = parse_vs_target(vs)
-    if target.kind == 'xlsx':
-        return read_xlsx(target.path, limits=limits)
-    return read_source(target.path)
+    target = parse_vs_target(vs) if vs is not None else None
+    return load_parsed_target(project, target, limits=limits)

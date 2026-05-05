@@ -107,12 +107,9 @@ def _resolve_targets(project: Project, targets: list[str]) -> list[Path]:
         return sorted(project.tests_dir.rglob('test_*.py'))
     out = []
     for t in targets:
-        try:
-            p = resolve_under(project.root, t)
-        except PathOutsideProjectError as e:
-            raise click.ClickException(str(e))
+        p = resolve_under(project.root, t)
         if not p.is_relative_to(project.tests_dir):
-            raise click.ClickException(
+            raise PathOutsideProjectError(
                 f'{t!r} resolves outside {project.tests_dir!r}'
             )
         if p.is_file():

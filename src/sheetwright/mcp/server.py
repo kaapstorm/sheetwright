@@ -24,7 +24,7 @@ from sheetwright.commands.snapshot_cmd import run as _snapshot_run
 from sheetwright.commands.test_cmd import run as _test_run
 from sheetwright.diff import diff_workbooks
 from sheetwright.diff.check import check_workbook
-from sheetwright.diff.loaders import load_target, parse_vs_target
+from sheetwright.diff.loaders import load_parsed_target, parse_vs_target
 from sheetwright.exceptions import ProjectError
 from sheetwright.mcp.errors import MCPError, classify_click_error
 from sheetwright.mcp.shaping import check_issues_to_dicts, diff_to_dict
@@ -38,6 +38,7 @@ from sheetwright.reimport import (
 )
 from sheetwright.security import (
     PathOutsideProjectError,
+    SecurityLimits,
     get_operator_limits,
     resolve_under,
 )
@@ -72,6 +73,7 @@ def do_diff(project: str, vs: Optional[str] = None) -> Dict[str, Any]:
     Returns `{is_empty, rendered, structured}`.
     """
     proj = _open_project(project)
+    vs_target = None
     if vs is not None:
         try:
             vs_target = parse_vs_target(vs)
@@ -81,8 +83,11 @@ def do_diff(project: str, vs: Optional[str] = None) -> Dict[str, Any]:
         except click.ClickException as e:
             raise MCPError(classify_click_error(e), e.message)
     source_wb = read_source(proj.root)
+    limits = SecurityLimits.effective(
+        get_operator_limits(), proj.config.security
+    )
     try:
-        target_wb = load_target(proj, vs)
+        target_wb = load_parsed_target(proj, vs_target, limits=limits)
     except click.ClickException as e:
         raise MCPError(classify_click_error(e), e.message)
     return diff_to_dict(diff_workbooks(target_wb, source_wb))
@@ -120,13 +125,15 @@ def do_init(path: str) -> Dict[str, Any]:
 
     Carve-out: `init` *creates* a project and is exempt from the
     per-call path-containment rule (there is no project root yet).
-    We do reject paths with '..' segments and non-empty targets.
+    We reject paths with '..' segments (regardless of absoluteness)
+    and non-empty targets.
     """
     p = Path(path)
     if '..' in p.parts:
         raise MCPError(
             'path_outside_project',
-            f'Path {path!r} contains ".." segments; use an absolute path.',
+            f'Path {path!r} contains ".." segments; pass a clean path '
+            f'without parent-directory references.',
         )
     if p.exists() and any(p.iterdir()):
         raise MCPError(
@@ -226,20 +233,6 @@ def do_test(
 
     Returns `{passed: bool, output: str}`.
     """
-    proj = _open_project(project)
-    for t in targets or []:
-        # Resolve relative to proj.root (targets like 'tests/test_foo.py'
-        # are given relative to the project root), then verify the resolved
-        # path falls under tests_dir.
-        try:
-            p = resolve_under(proj.root, t)
-        except PathOutsideProjectError as e:
-            raise MCPError('path_outside_project', str(e))
-        if not p.is_relative_to(proj.tests_dir):
-            raise MCPError(
-                'path_outside_project',
-                f'{t!r} resolves outside {proj.tests_dir!r}',
-            )
     buf = io.StringIO()
     passed = True
     try:
@@ -247,6 +240,8 @@ def do_test(
             _test_run(project_path=project, targets=targets or [])
     except click.exceptions.Exit as e:
         passed = e.exit_code == 0
+    except PathOutsideProjectError as e:
+        raise MCPError('path_outside_project', str(e))
     except click.ClickException as e:
         raise MCPError(classify_click_error(e), e.message)
     return {'passed': passed, 'output': buf.getvalue()}
