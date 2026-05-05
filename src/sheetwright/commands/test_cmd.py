@@ -31,6 +31,7 @@ from testsweet import (
 
 from sheetwright.exceptions import ProjectError
 from sheetwright.project import Project
+from sheetwright.security import PathOutsideProjectError, resolve_under
 
 
 def run(*, project_path: str, targets: Sequence[str]) -> None:
@@ -97,12 +98,23 @@ def run(*, project_path: str, targets: Sequence[str]) -> None:
 
 
 def _resolve_targets(project: Project, targets: list[str]) -> list[Path]:
-    """Return the list of test files to run."""
+    """Return the list of test files to run.
+
+    Targets are resolved relative to project.root (so users can pass
+    'tests/test_foo.py'). The resolved path must fall under tests_dir.
+    """
     if not targets:
         return sorted(project.tests_dir.rglob('test_*.py'))
     out = []
     for t in targets:
-        p = (project.root / t).resolve()
+        try:
+            p = resolve_under(project.root, t)
+        except PathOutsideProjectError as e:
+            raise click.ClickException(str(e))
+        if not p.is_relative_to(project.tests_dir):
+            raise click.ClickException(
+                f'{t!r} resolves outside {project.tests_dir!r}'
+            )
         if p.is_file():
             out.append(p)
         elif p.is_dir():

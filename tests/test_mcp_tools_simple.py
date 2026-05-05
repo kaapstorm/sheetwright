@@ -43,8 +43,10 @@ def diff_tool_returns_empty_diff_for_built_project():
 
 @test
 def diff_tool_against_explicit_xlsx():
-    with _imported() as (tmp_path, p):
-        other = tmp_path / 'other.xlsx'
+    with _imported() as (_tmp, p):
+        # Place the comparison xlsx inside the project so it passes
+        # path-containment (vs=xlsx: paths must resolve under proj.root).
+        other = p / 'other.xlsx'
         write_simple_xlsx(other)
         out = do_diff(project=str(p), vs=f'xlsx:{other}')
         assert out['is_empty'] is True

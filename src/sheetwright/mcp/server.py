@@ -24,7 +24,7 @@ from sheetwright.commands.snapshot_cmd import run as _snapshot_run
 from sheetwright.commands.test_cmd import run as _test_run
 from sheetwright.diff import diff_workbooks
 from sheetwright.diff.check import check_workbook
-from sheetwright.diff.loaders import load_target
+from sheetwright.diff.loaders import load_target, parse_vs_target
 from sheetwright.exceptions import ProjectError
 from sheetwright.mcp.errors import MCPError, classify_click_error
 from sheetwright.mcp.shaping import check_issues_to_dicts, diff_to_dict
@@ -36,7 +36,11 @@ from sheetwright.reimport import (
     save_session,
     stage_reimport,
 )
-from sheetwright.security import get_operator_limits
+from sheetwright.security import (
+    PathOutsideProjectError,
+    get_operator_limits,
+    resolve_under,
+)
 from sheetwright.source.reader import read_source
 
 
@@ -68,6 +72,14 @@ def do_diff(project: str, vs: Optional[str] = None) -> Dict[str, Any]:
     Returns `{is_empty, rendered, structured}`.
     """
     proj = _open_project(project)
+    if vs is not None:
+        try:
+            vs_target = parse_vs_target(vs)
+            resolve_under(proj.root, vs_target.path)
+        except PathOutsideProjectError as e:
+            raise MCPError('path_outside_project', str(e))
+        except click.ClickException as e:
+            raise MCPError(classify_click_error(e), e.message)
     source_wb = read_source(proj.root)
     try:
         target_wb = load_target(proj, vs)
@@ -104,7 +116,23 @@ def _run_capturing(fn: Any, **kwargs: Any) -> str:
 
 
 def do_init(path: str) -> Dict[str, Any]:
-    """Scaffold an empty sheetwright project at `path`."""
+    """Scaffold an empty sheetwright project at `path`.
+
+    Carve-out: `init` *creates* a project and is exempt from the
+    per-call path-containment rule (there is no project root yet).
+    We do reject paths with '..' segments and non-empty targets.
+    """
+    p = Path(path)
+    if '..' in p.parts:
+        raise MCPError(
+            'path_outside_project',
+            f'Path {path!r} contains ".." segments; use an absolute path.',
+        )
+    if p.exists() and any(p.iterdir()):
+        raise MCPError(
+            'path_not_empty',
+            f'Path {path!r} exists and is not empty.',
+        )
     captured = _run_capturing(_init_run, path=path).strip()
     return _ok(captured or f'Initialised sheetwright project at {path}')
 
@@ -119,6 +147,11 @@ def do_import_xlsx(
 
     Re-import is NOT exposed here; use the re-import tools
     (`do_reimport_stage` / `do_reimport_apply` / `do_reimport_abort`).
+
+    Carve-out: `xlsx` is an external import source — the operator
+    intentionally points at an xlsx anywhere on disk to pull it into
+    the project. No path-containment check is applied here, mirroring
+    the carve-out for `do_reimport_stage.xlsx`.
     """
     proj = _open_project(project)
     if proj.has_source():
@@ -143,6 +176,12 @@ def do_import_xlsx(
 
 def do_build(project: str, out_path: Optional[str] = None) -> Dict[str, Any]:
     """Compile sources into an .xlsx."""
+    proj = _open_project(project)
+    if out_path is not None:
+        try:
+            resolve_under(proj.root, out_path)
+        except PathOutsideProjectError as e:
+            raise MCPError('path_outside_project', str(e))
     captured = _run_capturing(
         _build_run, project_path=project, out_path=out_path
     ).strip()
@@ -187,6 +226,20 @@ def do_test(
 
     Returns `{passed: bool, output: str}`.
     """
+    proj = _open_project(project)
+    for t in targets or []:
+        # Resolve relative to proj.root (targets like 'tests/test_foo.py'
+        # are given relative to the project root), then verify the resolved
+        # path falls under tests_dir.
+        try:
+            p = resolve_under(proj.root, t)
+        except PathOutsideProjectError as e:
+            raise MCPError('path_outside_project', str(e))
+        if not p.is_relative_to(proj.tests_dir):
+            raise MCPError(
+                'path_outside_project',
+                f'{t!r} resolves outside {proj.tests_dir!r}',
+            )
     buf = io.StringIO()
     passed = True
     try:
@@ -210,6 +263,10 @@ def do_reimport_stage(
     If the diff is non-empty, saves a session on disk that
     `do_reimport_apply` can later commit. Returns the diff plus
     `xlsx_path` and `xlsx_sha256` for cross-call verification.
+
+    Carve-out: `xlsx` is the external import source — the operator
+    intentionally points at an xlsx anywhere on disk. No
+    path-containment check is applied to this argument.
     """
     proj = _open_project(project)
     try:

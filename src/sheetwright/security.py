@@ -4,6 +4,54 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+
+class PathOutsideProjectError(Exception):
+    """Raised when a candidate path resolves outside the project root."""
+
+
+def resolve_under(root: Path, candidate: str | Path) -> Path:
+    """Resolve `candidate` relative to `root`; verify the resolved
+    path is under `root` after symlink collapse. Returns the resolved
+    Path. Raises PathOutsideProjectError if it escapes.
+
+    Handles non-existent paths (e.g. an output file that hasn't been
+    written yet) by resolving the deepest existing ancestor and
+    re-attaching the missing suffix.
+    """
+    root_resolved = root.resolve(strict=True)
+
+    if Path(candidate).is_absolute():
+        target = Path(candidate)
+    else:
+        target = root_resolved / candidate
+
+    # Walk parents until we find an existing ancestor; resolve that;
+    # re-attach the missing tail to handle non-existent paths.
+    parts: list[str] = []
+    current = target
+    while True:
+        if current.exists():
+            resolved = current.resolve()
+            # Re-attach the non-existent suffix
+            for part in reversed(parts):
+                resolved = resolved / part
+            break
+        parts.append(current.name)
+        parent = current.parent
+        if parent == current:
+            # Reached filesystem root without finding an existing node;
+            # fall back to resolving what we have (no symlink collapsing).
+            resolved = target
+            break
+        current = parent
+
+    if not resolved.is_relative_to(root_resolved):
+        raise PathOutsideProjectError(
+            f'{candidate!r} resolves outside {root_resolved!r}'
+        )
+    return resolved
 
 
 _DEFAULT_MAX_XLSX_UNCOMPRESSED_BYTES = 200 * 1024 * 1024  # 200 MiB
