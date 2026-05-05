@@ -79,8 +79,9 @@ def apply_refuses_when_staged_xlsx_modified():
         import json
 
         sess = json.loads((p / '.sheetwright' / 'reimport.json').read_text())
-        staged_xlsx = Path(sess['xlsx_path'])
-        staged_xlsx.write_bytes(staged_xlsx.read_bytes() + b' ')
+        # staged_filename is the copy under .sheetwright/staged/ — corrupt it
+        staged_copy = p / '.sheetwright' / 'staged' / sess['staged_filename']
+        staged_copy.write_bytes(staged_copy.read_bytes() + b' ')
 
         runner = CliRunner()
         r = runner.invoke(main, ['import', '--apply', '--project', str(p)])

@@ -43,7 +43,7 @@ def stage_returns_empty_diff_when_xlsx_unchanged():
         assert isinstance(staged, StagedReimport)
         assert staged.diff.is_empty()
         assert 'no changes' in staged.rendered_diff.lower()
-        assert staged.xlsx_path == src.resolve()
+        assert staged.original_xlsx_path == src.resolve()
 
 
 @test

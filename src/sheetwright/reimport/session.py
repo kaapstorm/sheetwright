@@ -13,13 +13,17 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Optional
 
+from sheetwright.exceptions import StaleSessionFormatError
+
 
 @dataclass(frozen=True)
 class ReimportSession:
-    xlsx_path: str
+    xlsx_path: str  # display only — original path the user pointed at
     xlsx_sha256: str
     diff_summary: str
     created_at: str
+    staged_filename: str  # '{sha}.xlsx' — the staging copy filename
+    original_xlsx_path: str  # original path the user pointed at, for messages
 
 
 def save_session(path: Path, session: ReimportSession) -> None:
@@ -32,12 +36,21 @@ def load_session(path: Path) -> Optional[ReimportSession]:
         return None
     try:
         data = json.loads(path.read_text())
+        if 'staged_filename' not in data:
+            raise StaleSessionFormatError(
+                f'Session at {path} predates the staging-copy invariant; '
+                f're-stage with `-I`.'
+            )
         return ReimportSession(
             xlsx_path=data['xlsx_path'],
             xlsx_sha256=data['xlsx_sha256'],
             diff_summary=data['diff_summary'],
             created_at=data['created_at'],
+            staged_filename=data['staged_filename'],
+            original_xlsx_path=data['original_xlsx_path'],
         )
+    except StaleSessionFormatError:
+        raise
     except (json.JSONDecodeError, KeyError, TypeError):
         return None
 

@@ -50,8 +50,9 @@ class StagedReimport:
     diff: WorkbookDiff
     rendered_diff: str
     new_workbook: Workbook
-    xlsx_path: Path
+    xlsx_path: Path  # staging copy path
     xlsx_sha256: str
+    original_xlsx_path: Path  # what the user pointed at, for messages
 
 
 def stage_reimport(
@@ -93,9 +94,16 @@ def stage_reimport(
             'pass --flatten to replace them with cached values.'
         )
 
-    new_wb = read_xlsx(xlsx, limits=limits)
+    xlsx_sha256 = hash_xlsx(xlsx)
+
+    staged_dir = project.root / '.sheetwright' / 'staged'
+    staged_dir.mkdir(parents=True, exist_ok=True)
+    staging_copy = staged_dir / f'{xlsx_sha256}.xlsx'
+    shutil.copy2(xlsx, staging_copy)
+
+    new_wb = read_xlsx(staging_copy, limits=limits)
     if flatten:
-        flatten_external_refs(new_wb, xlsx, limits=limits)
+        flatten_external_refs(new_wb, staging_copy, limits=limits)
 
     current_wb = read_source(project.root)
     diff = diff_workbooks(current_wb, new_wb)
@@ -105,8 +113,9 @@ def stage_reimport(
         diff=diff,
         rendered_diff=rendered,
         new_workbook=new_wb,
-        xlsx_path=Path(xlsx).resolve(),
-        xlsx_sha256=hash_xlsx(xlsx),
+        xlsx_path=staging_copy,
+        xlsx_sha256=xlsx_sha256,
+        original_xlsx_path=Path(xlsx).resolve(),
     )
 
 
@@ -146,10 +155,12 @@ def do_reimport(
         save_session(
             project.reimport_session_path,
             ReimportSession(
-                xlsx_path=str(staged.xlsx_path),
+                xlsx_path=str(staged.original_xlsx_path),
                 xlsx_sha256=staged.xlsx_sha256,
                 diff_summary=staged.rendered_diff,
                 created_at=datetime.now(timezone.utc).isoformat(),
+                staged_filename=staged.xlsx_path.name,
+                original_xlsx_path=str(staged.original_xlsx_path),
             ),
         )
         click.echo(
@@ -169,15 +180,18 @@ def do_reimport(
         return
 
     commit_staged(project, staged, archive=archive)
-    click.echo(f'Source updated from {staged.xlsx_path}.')
+    click.echo(f'Source updated from {staged.original_xlsx_path}.')
 
 
 def apply_session(project: Project, *, archive: bool, flatten: bool) -> None:
     """Complete a previously-staged -I session.
 
-    Reads the session, opens the staged xlsx, optionally flattens
+    Reads the session, opens the staging copy, optionally flattens
     external refs, writes source, optionally archives, and clears
     the session file.
+
+    Raises `StaleSessionFormatError` if the session predates the
+    staging-copy invariant (propagated from load_session).
     """
     session = load_session(project.reimport_session_path)
     if session is None:
@@ -186,16 +200,19 @@ def apply_session(project: Project, *, archive: bool, flatten: bool) -> None:
             'Run `sheetwright import <xlsx> -I` first.'
         )
 
-    xlsx = Path(session.xlsx_path)
-    if not xlsx.is_file():
+    staged_path = (
+        project.root / '.sheetwright' / 'staged' / session.staged_filename
+    )
+    if not staged_path.is_file():
         raise click.ClickException(
-            f'Staged xlsx no longer exists at {xlsx}. Re-stage with -I.'
+            f'Staged xlsx no longer exists at {staged_path}; '
+            f're-stage with `-I`.'
         )
 
-    current_hash = hash_xlsx(xlsx)
+    current_hash = hash_xlsx(staged_path)
     if current_hash != session.xlsx_sha256:
         raise click.ClickException(
-            f'Staged xlsx at {xlsx} has been modified since `-I` ('
+            f'Staged xlsx at {staged_path} has been modified since `-I` ('
             f'recorded hash {session.xlsx_sha256[:12]}, current '
             f'{current_hash[:12]}). Re-stage with `-I` to see the new '
             f'diff.'
@@ -204,15 +221,15 @@ def apply_session(project: Project, *, archive: bool, flatten: bool) -> None:
     limits = SecurityLimits.effective(
         get_operator_limits(), project.config.security
     )
-    new_wb = read_xlsx(xlsx, limits=limits)
+    new_wb = read_xlsx(staged_path, limits=limits)
     if flatten:
-        flatten_external_refs(new_wb, xlsx, limits=limits)
+        flatten_external_refs(new_wb, staged_path, limits=limits)
     write_source(new_wb, project.root)
     if archive:
-        archive_xlsx(xlsx, project.root)
+        archive_xlsx(staged_path, project.root)
 
     clear_session(project.reimport_session_path)
-    click.echo(f'Applied staged changes from {xlsx}.')
+    click.echo(f'Applied staged changes from {session.original_xlsx_path}.')
 
 
 def archive_xlsx(xlsx: Path, project_root: Path) -> None:

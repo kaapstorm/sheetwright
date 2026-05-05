@@ -7,7 +7,7 @@ from typing import Optional
 
 import click
 
-from sheetwright.exceptions import ProjectError
+from sheetwright.exceptions import ProjectError, StaleSessionFormatError
 from sheetwright.project import Project
 from sheetwright.reimport import archive_xlsx
 from sheetwright.security import SecurityLimits, get_operator_limits
@@ -47,7 +47,10 @@ def run(
     if apply:
         from sheetwright.reimport import apply_session
 
-        apply_session(project, archive=archive, flatten=flatten)
+        try:
+            apply_session(project, archive=archive, flatten=flatten)
+        except StaleSessionFormatError as e:
+            raise click.ClickException(str(e))
         return
 
     if xlsx_path is None:

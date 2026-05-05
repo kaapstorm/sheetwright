@@ -25,7 +25,7 @@ from sheetwright.commands.test_cmd import run as _test_run
 from sheetwright.diff import diff_workbooks
 from sheetwright.diff.check import check_workbook
 from sheetwright.diff.loaders import load_parsed_target, parse_vs_target
-from sheetwright.exceptions import ProjectError
+from sheetwright.exceptions import ProjectError, StaleSessionFormatError
 from sheetwright.mcp.errors import MCPError, classify_click_error
 from sheetwright.mcp.shaping import check_issues_to_dicts, diff_to_dict
 from sheetwright.project import Project
@@ -271,17 +271,19 @@ def do_reimport_stage(
 
     out = diff_to_dict(staged.diff)
     out['rendered_diff'] = staged.rendered_diff
-    out['xlsx_path'] = str(staged.xlsx_path)
+    out['xlsx_path'] = str(staged.original_xlsx_path)
     out['xlsx_sha256'] = staged.xlsx_sha256
 
     if not staged.diff.is_empty():
         save_session(
             proj.reimport_session_path,
             ReimportSession(
-                xlsx_path=str(staged.xlsx_path),
+                xlsx_path=str(staged.original_xlsx_path),
                 xlsx_sha256=staged.xlsx_sha256,
                 diff_summary=staged.rendered_diff,
                 created_at=datetime.now(timezone.utc).isoformat(),
+                staged_filename=staged.xlsx_path.name,
+                original_xlsx_path=str(staged.original_xlsx_path),
             ),
         )
 
@@ -297,6 +299,8 @@ def do_reimport_apply(project: str, archive: bool = False) -> Dict[str, Any]:
             # flatten was decided at stage time and reflected in the
             # saved session; apply just writes what was staged.
             apply_session(proj, archive=archive, flatten=False)
+    except StaleSessionFormatError as e:
+        raise MCPError('stale_session_format', str(e))
     except click.ClickException as e:
         raise MCPError(classify_click_error(e), e.message)
     return _ok(buf.getvalue().strip() or 'Staged re-import applied.')
