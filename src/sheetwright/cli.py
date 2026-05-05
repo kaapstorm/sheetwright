@@ -205,8 +205,12 @@ def check_cmd(project_path: str) -> None:
 def test_cmd(project_path: str, targets: tuple[str, ...]) -> None:
     """Run the project's testsweet tests."""
     from sheetwright.commands.test_cmd import run
+    from sheetwright.security import PathOutsideProjectError
 
-    run(project_path=project_path, targets=list(targets))
+    try:
+        run(project_path=project_path, targets=list(targets))
+    except PathOutsideProjectError as e:
+        raise click.ClickException(str(e))
 
 
 @main.command('mcp')
