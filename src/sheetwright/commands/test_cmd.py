@@ -43,7 +43,10 @@ def run(*, project_path: str, targets: Sequence[str]) -> None:
     if not project.tests_dir.is_dir():
         raise click.ClickException(f'no tests/ directory in {project.root}')
 
-    test_files = list(_resolve_targets(project, list(targets)))
+    try:
+        test_files = list(_resolve_targets(project, list(targets)))
+    except PathOutsideProjectError as e:
+        raise click.ClickException(str(e))
     if not test_files:
         click.echo('no tests collected')
         return

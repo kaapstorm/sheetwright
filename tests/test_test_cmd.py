@@ -83,6 +83,19 @@ def test_command_supports_target_selection():
 
 
 @test
+def test_command_rejects_path_outside_project():
+    with _project_with_tests() as (_tmp, p):
+        runner = CliRunner()
+        r = runner.invoke(
+            main,
+            ['test', '--project', str(p), '../escape.py'],
+        )
+        assert r.exit_code != 0
+        assert 'Traceback' not in r.output
+        assert 'escape' in r.output or 'outside' in r.output
+
+
+@test
 def test_command_errors_when_tests_dir_missing():
     with tempfile.TemporaryDirectory() as td:
         tmp_path = Path(td)
