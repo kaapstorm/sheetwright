@@ -29,15 +29,14 @@ class LibreOfficeError(RuntimeError):
 
 
 class LibreOfficeEngine(CalcEngine):
-    def __init__(self, soffice: str = 'soffice', timeout: float = 120.0):
+    def __init__(self, soffice: str = 'soffice'):
         self.soffice = soffice
-        self.timeout = timeout
 
     def evaluate(
         self, xlsx_path: Path, *, limits: SecurityLimits
     ) -> CalcResult:
         xlsx_path = Path(xlsx_path).resolve()
-        with tempfile.TemporaryDirectory(prefix='cshs-calc-') as td_str:
+        with tempfile.TemporaryDirectory(prefix='sheetwright-calc-') as td_str:
             td = Path(td_str)
             profile = td / 'profile'
             outdir = td / 'out'
@@ -46,6 +45,11 @@ class LibreOfficeEngine(CalcEngine):
             cmd = [
                 self.soffice,
                 '--headless',
+                '--safe-mode',
+                '--norestore',
+                '--nolockcheck',
+                '--nofirststartwizard',
+                '--nodefault',
                 '--calc',
                 f'-env:UserInstallation=file://{profile}',
                 '--convert-to',
@@ -54,11 +58,12 @@ class LibreOfficeEngine(CalcEngine):
                 str(outdir),
                 str(xlsx_path),
             ]
+            timeout = limits.soffice_timeout
             try:
                 proc = subprocess.run(
                     cmd,
                     capture_output=True,
-                    timeout=self.timeout,
+                    timeout=timeout,
                     check=False,
                 )
             except FileNotFoundError as e:
@@ -67,7 +72,7 @@ class LibreOfficeEngine(CalcEngine):
                 ) from e
             except subprocess.TimeoutExpired as e:
                 raise LibreOfficeError(
-                    f'{self.soffice} timed out after {self.timeout}s'
+                    f'{self.soffice} timed out after {timeout}s'
                 ) from e
 
             if proc.returncode != 0:

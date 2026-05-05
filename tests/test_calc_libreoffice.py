@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from testsweet import catch_exceptions, test
 
@@ -47,3 +48,54 @@ def libreoffice_engine_raises_when_binary_missing():
             eng.evaluate(src, limits=SecurityLimits.defaults())
         assert excs and isinstance(excs[0], LibreOfficeError)
         assert 'not on' in str(excs[0])
+
+
+@test
+def libreoffice_engine_cmd_includes_hardening_flags():
+    with tempfile.TemporaryDirectory() as td:
+        src = Path(td) / 'fake.xlsx'
+        src.write_bytes(b'fake')
+        captured: list[list[str]] = []
+
+        def fake_run(cmd, **kwargs):
+            captured.append(list(cmd))
+            raise FileNotFoundError('stub')
+
+        with patch('sheetwright.calc.libreoffice.subprocess.run', fake_run):
+            with catch_exceptions():
+                LibreOfficeEngine().evaluate(
+                    src, limits=SecurityLimits.defaults()
+                )
+
+        assert captured, 'subprocess.run was not called'
+        cmd = captured[0]
+        for flag in (
+            '--safe-mode',
+            '--norestore',
+            '--nolockcheck',
+            '--nofirststartwizard',
+            '--nodefault',
+        ):
+            assert flag in cmd, f'{flag!r} missing from soffice cmd'
+
+
+@test
+def libreoffice_engine_tempdir_prefix():
+    mock_td = MagicMock()
+    mock_td.return_value.__enter__ = MagicMock(return_value='/tmp/stub')
+    mock_td.return_value.__exit__ = MagicMock(return_value=False)
+
+    with tempfile.TemporaryDirectory() as td:
+        src = Path(td) / 'fake.xlsx'
+        src.write_bytes(b'fake')
+
+    with patch(
+        'sheetwright.calc.libreoffice.tempfile.TemporaryDirectory', mock_td
+    ):
+        with catch_exceptions():
+            LibreOfficeEngine(soffice='/no/such/soffice').evaluate(
+                src, limits=SecurityLimits.defaults()
+            )
+
+    assert mock_td.call_args is not None, 'TemporaryDirectory was not called'
+    assert mock_td.call_args.kwargs.get('prefix') == 'sheetwright-calc-'
