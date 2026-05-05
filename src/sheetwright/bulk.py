@@ -8,6 +8,19 @@ import sqlite3
 from pathlib import Path
 from typing import List
 
+from sheetwright.exceptions import BulkInvalidIdentifierError
+
+_IDENT_RE = re.compile(r'[A-Za-z_][A-Za-z0-9_]{0,62}')
+
+
+def _validate_identifier(name: str) -> str:
+    if not _IDENT_RE.fullmatch(name):
+        raise BulkInvalidIdentifierError(
+            f'invalid SQL identifier: {name!r} '
+            '(must match [A-Za-z_][A-Za-z0-9_]{0,62})'
+        )
+    return name
+
 
 def table_name_for(filename: str) -> str:
     stem = Path(filename).stem
@@ -46,15 +59,16 @@ def build_bulk_cache(project_root: Path) -> Path:
     conn = sqlite3.connect(db_path)
     try:
         for csv_path in csvs:
-            table = table_name_for(csv_path.name)
+            table = _validate_identifier(table_name_for(csv_path.name))
             with csv_path.open() as f:
                 reader = csv.reader(f)
                 header = next(reader, None)
                 if not header:
                     continue
+                cols = [_validate_identifier(c) for c in header]
                 # All columns typed TEXT in Plan 1; _schema.sql support
                 # is deferred to a later plan.
-                cols_sql = ', '.join(f'"{c}" TEXT' for c in header)
+                cols_sql = ', '.join(f'"{c}" TEXT' for c in cols)
                 conn.execute(f'CREATE TABLE "{table}" ({cols_sql})')
                 placeholders = ', '.join(['?'] * len(header))
                 conn.executemany(
