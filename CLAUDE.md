@@ -3,7 +3,7 @@
 ## Layout
 
 - `src/sheetwright/` — library + CLI entry points
-- `tests/` — testsweet tests, mirroring the package layout
+- `tests/` — pytest tests, mirroring the package layout
 - `claude/specs/` — design specifications
 - `claude/plans/` — implementation plans (when written)
 
