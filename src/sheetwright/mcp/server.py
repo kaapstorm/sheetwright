@@ -3,6 +3,34 @@
 Exposes each CLI command as an MCP tool. The server is a thin facade
 over `sheetwright.commands.*.run` and the pure helpers in
 `sheetwright.diff` / `reimport`.
+
+# Trust model
+
+sheetwright assumes a *trusted operator* running this server, exposing
+it to a (possibly less-trusted) MCP client. The operator chooses which
+``project`` paths the client may pass. The server enforces that every
+other path on a tool call resolves under the call's ``project`` root.
+
+A client may pass any ``project`` path on disk that the operator's user
+has read access to — the server does not maintain an allow-list. The
+operator is responsible for which projects they expose (e.g. by where
+they cd to before launching, or by what they choose to import).
+
+Tests run in-process (``exec_module``) under ``<project>/tests/``. The
+operator's choice to open a project implies trusting that project's test
+code.
+
+xlsx ingest enforces size / sheet / cell limits configurable via env
+(operator ceiling) and ``sheetwright.toml`` (project floor). LibreOffice
+runs ``--safe-mode`` with an isolated profile.
+
+Known gaps (Phase 1):
+
+- Parser CPU time is not bounded. A malicious xlsx within the byte cap
+  can still consume some seconds of CPU.
+- Path validation (``resolve_under``) has a TOCTOU window between the
+  check and openpyxl's open. Phase 1 assumes the filesystem is stable
+  during a tool call.
 """
 
 from __future__ import annotations

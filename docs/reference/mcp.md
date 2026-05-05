@@ -29,8 +29,60 @@ For a generic stdio MCP client:
 sheetwright mcp
 ```
 
+Note: `--directory` is `uv`'s flag — it sets the subprocess's working
+directory before invoking `sheetwright mcp`. It is not a sheetwright
+workspace root. The server is per-call sandboxed via the `project`
+argument of each tool, not via the launch cwd.
+
 The tools all accept a `project` argument (path to a sheetwright
 project) so a single server can drive multiple projects sequentially.
+
+## Trust model and path containment
+
+sheetwright uses a per-call workspace root. Every tool call carries a
+`project` argument that is the sandbox for that call: every other path
+argument on the same call must resolve under that `project` directory.
+Three carve-outs exist for paths that are intentionally outside the
+project tree:
+
+- `do_init(path)` — `path` is the directory to scaffold; it need not
+  exist yet, so containment is not enforced.
+- `do_import_xlsx(xlsx, ...)` — the source xlsx may live anywhere the
+  operator's user can read; only the destination `project` is
+  sandboxed.
+- `do_reimport_stage(xlsx, ...)` — same as above; the xlsx being
+  re-imported is an external file.
+
+The "one server, many projects" property is preserved: the `project`
+argument changes per call, and the server enforces containment relative
+to whichever root was passed on that call.
+
+The server does not maintain an allow-list of permitted project
+directories. A client may pass any `project` path that the operator's
+user has read access to. The operator is the gatekeeper — they control
+which projects are reachable by deciding which user runs the server and
+what filesystem access that user has.
+
+`do_test` runs test files found under `<project>/tests/` in-process via
+`exec_module`. This is intentional: the operator chose to open that
+project, which implies trusting its test code. Test discovery is
+restricted to the `tests/` subdirectory and cannot escape the project
+root.
+
+xlsx ingest enforces size, sheet-count, and cell-count limits at two
+layers. The operator sets a ceiling via environment variables
+(`SHEETWRIGHT_MAX_XLSX_BYTES` etc.). A project's `sheetwright.toml` may
+tighten those limits further via a `[security]` block but cannot raise
+them above the operator ceiling. LibreOffice (used for recalc) runs
+`--safe-mode` with an isolated profile directory.
+
+**Known gaps (Phase 1):**
+
+- Parser CPU time is not bounded. An xlsx within the byte cap can still
+  consume some seconds of CPU during parsing.
+- Path validation (`resolve_under`) has a TOCTOU window between the
+  check and openpyxl's open. Phase 1 assumes the filesystem is stable
+  during a tool call.
 
 ## Tools
 

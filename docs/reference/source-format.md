@@ -22,7 +22,7 @@ my-model/
 ├── data/
 │   ├── countries.csv         # bulk lookup data
 │   └── product_catalog.csv
-├── tests/
+├── tests/                    # test files; do_test restricts discovery here
 │   ├── __init__.py
 │   ├── test_revenue.py
 │   └── snapshots/
@@ -66,6 +66,40 @@ calc_engine = "libreoffice"
 | --- | --- | --- | --- |
 | `project.name` | str | required | Project name. Also the default workbook name. |
 | `build.calc_engine` | str | `"libreoffice"` | Calc engine identifier (see [calc engine](calc-engine.md)). |
+
+### `[security]`
+
+An optional `[security]` block in `sheetwright.toml` lets a project
+tighten the operator-side ingest limits. Each key may only reduce (i.e.
+tighten) the operator ceiling; it cannot raise it above the value the
+operator set via environment variables.
+
+```toml
+# sheetwright.toml — optional [security] block.
+# Each key may only tighten the operator-side ceiling (set via env
+# vars like SHEETWRIGHT_MAX_XLSX_BYTES). Operator defaults shown.
+
+[security]
+max_xlsx_uncompressed_bytes = 209715200    # 200 MiB; operator default
+max_xlsx_sheet_count = 200
+max_xlsx_cells_per_sheet = 5000000
+max_xlsx_shared_strings = 5000000
+soffice_timeout = 120.0                    # seconds
+```
+
+The corresponding operator-ceiling environment variables are:
+
+| Env var | Controls |
+| --- | --- |
+| `SHEETWRIGHT_MAX_XLSX_BYTES` | Maximum uncompressed xlsx size |
+| `SHEETWRIGHT_MAX_XLSX_SHEETS` | Maximum number of sheets |
+| `SHEETWRIGHT_MAX_XLSX_CELLS_PER_SHEET` | Maximum cells per sheet |
+| `SHEETWRIGHT_MAX_XLSX_SHARED_STRINGS` | Maximum shared-string entries |
+| `SHEETWRIGHT_SOFFICE_TIMEOUT` | LibreOffice recalc timeout (seconds) |
+
+Unknown keys in `[security]` raise a `ProjectError` at project-open
+time — there are no silent drops. This gives a clear error signal
+when a key is misspelled or a future sheetwright version removes a key.
 
 ## `workbook.toml`
 
