@@ -10,7 +10,6 @@ import click
 from sheetwright.build_hash import BuildHashRecord, write_build_hash
 from sheetwright.bulk import build_bulk_cache
 from sheetwright.calc.cache import hash_xlsx
-from sheetwright.config import load_project
 from sheetwright.exceptions import ProjectError
 from sheetwright.project import Project
 from sheetwright.source.reader import read_source
@@ -23,7 +22,7 @@ def run(*, project_path: str, out_path: str | None) -> None:
     except ProjectError as e:
         raise click.ClickException(str(e))
 
-    cfg = load_project(project.sheetwright_toml.read_text())
+    cfg = project.config
 
     wb = read_source(project.root)
     build_bulk_cache(project.root)

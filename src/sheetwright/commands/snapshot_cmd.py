@@ -10,7 +10,6 @@ from sheetwright.calc.cache import (
     read_cached,
     write_cached,
 )
-from sheetwright.config import load_project
 from sheetwright.exceptions import ProjectError
 from sheetwright.project import Project
 from sheetwright.snapshot import (
@@ -31,7 +30,7 @@ def run(*, project_path: str, update: bool) -> None:
 
     warn_if_externally_edited(project)
 
-    cfg = load_project(project.sheetwright_toml.read_text())
+    cfg = project.config
     built = project.build_dir / f'{cfg.name}.xlsx'
     if not built.is_file():
         raise click.ClickException(

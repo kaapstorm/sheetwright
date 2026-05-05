@@ -5,19 +5,25 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from sheetwright.config import ProjectConfig, load_project
 from sheetwright.exceptions import ProjectError
 
 
 class Project:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, config: ProjectConfig):
         self.root = Path(root).resolve()
+        self.config = config
+        """config is parsed once at open() and is treated as immutable
+        for the lifetime of the Project instance."""
 
     @classmethod
     def open(cls, path: str | Path) -> 'Project':
         root = Path(path).resolve()
-        if not (root / 'sheetwright.toml').is_file():
+        toml_path = root / 'sheetwright.toml'
+        if not toml_path.is_file():
             raise ProjectError(f'Not a sheetwright project: {root}')
-        return cls(root)
+        config = load_project(toml_path.read_text())
+        return cls(root, config)
 
     @property
     def sheetwright_toml(self) -> Path:

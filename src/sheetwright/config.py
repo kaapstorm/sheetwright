@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
+import dataclasses
 import tomllib
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import tomli_w
 
 from sheetwright.model.workbook import NamedRange
+from sheetwright.security import SecurityLimits
 
 
 @dataclass(frozen=True)
 class ProjectConfig:
     name: str
     calc_engine: str = 'libreoffice'
+    security: Optional[SecurityLimits] = None
 
 
 @dataclass
@@ -41,19 +44,35 @@ class WorkbookManifest:
 
 
 def dump_project(cfg: ProjectConfig) -> str:
-    return tomli_w.dumps(
-        {
-            'project': {'name': cfg.name},
-            'build': {'calc_engine': cfg.calc_engine},
+    doc: Dict[str, Any] = {
+        'project': {'name': cfg.name},
+        'build': {'calc_engine': cfg.calc_engine},
+    }
+    if cfg.security is not None:
+        doc['security'] = {
+            'max_xlsx_uncompressed_bytes': cfg.security.max_xlsx_uncompressed_bytes,
+            'max_xlsx_sheet_count': cfg.security.max_xlsx_sheet_count,
+            'max_xlsx_cells_per_sheet': cfg.security.max_xlsx_cells_per_sheet,
+            'max_xlsx_shared_strings': cfg.security.max_xlsx_shared_strings,
+            'soffice_timeout': cfg.security.soffice_timeout,
         }
-    )
+    return tomli_w.dumps(doc)
 
 
 def load_project(text: str) -> ProjectConfig:
     data = tomllib.loads(text)
+    security: Optional[SecurityLimits] = None
+    if 'security' in data:
+        sec = data['security']
+        defaults = SecurityLimits.defaults()
+        security = dataclasses.replace(
+            defaults,
+            **{k: sec[k] for k in sec if hasattr(defaults, k)},
+        )
     return ProjectConfig(
         name=data['project']['name'],
         calc_engine=data.get('build', {}).get('calc_engine', 'libreoffice'),
+        security=security,
     )
 
 

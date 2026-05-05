@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Optional
 
 from sheetwright.calc import CalcEngine, CalcResult, get_calc_engine
-from sheetwright.config import load_project
 from sheetwright.model.cell import Cell, CellValue
 from sheetwright.model.workbook import Workbook
 from sheetwright.project import Project
@@ -32,9 +31,8 @@ class Model:
     @classmethod
     def open(cls, project_path: str | Path) -> 'Model':
         project = Project.open(project_path)
-        cfg = load_project(project.sheetwright_toml.read_text())
         wb = read_source(project.root)
-        return cls(wb, get_calc_engine(cfg.calc_engine))
+        return cls(wb, get_calc_engine(project.config.calc_engine))
 
     @property
     def workbook(self) -> Workbook:
