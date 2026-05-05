@@ -29,6 +29,7 @@ from sheetwright.diff.model import WorkbookDiff
 from sheetwright.gitutil import has_uncommitted_changes
 from sheetwright.model.workbook import Workbook
 from sheetwright.project import Project
+from sheetwright.security import SecurityLimits, get_operator_limits
 from sheetwright.reimport.session import (
     ReimportSession,
     clear_session,
@@ -82,16 +83,19 @@ def stage_reimport(
             'them before importing, or pass --force to discard.'
         )
 
-    extrefs = detect_external_refs(xlsx)
+    limits = SecurityLimits.effective(
+        get_operator_limits(), project.config.security
+    )
+    extrefs = detect_external_refs(xlsx, limits=limits)
     if extrefs and not flatten:
         raise click.ClickException(
             'Workbook contains external references; '
             'pass --flatten to replace them with cached values.'
         )
 
-    new_wb = read_xlsx(xlsx)
+    new_wb = read_xlsx(xlsx, limits=limits)
     if flatten:
-        flatten_external_refs(new_wb, xlsx)
+        flatten_external_refs(new_wb, xlsx, limits=limits)
 
     current_wb = read_source(project.root)
     diff = diff_workbooks(current_wb, new_wb)
@@ -197,9 +201,12 @@ def apply_session(project: Project, *, archive: bool, flatten: bool) -> None:
             f'diff.'
         )
 
-    new_wb = read_xlsx(xlsx)
+    limits = SecurityLimits.effective(
+        get_operator_limits(), project.config.security
+    )
+    new_wb = read_xlsx(xlsx, limits=limits)
     if flatten:
-        flatten_external_refs(new_wb, xlsx)
+        flatten_external_refs(new_wb, xlsx, limits=limits)
     write_source(new_wb, project.root)
     if archive:
         archive_xlsx(xlsx, project.root)

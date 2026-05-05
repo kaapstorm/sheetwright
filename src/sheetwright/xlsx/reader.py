@@ -7,7 +7,6 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-import openpyxl
 from openpyxl.cell.cell import Cell as XCell
 from openpyxl.worksheet.datavalidation import DataValidation as XDV
 from openpyxl.worksheet.worksheet import Worksheet
@@ -19,7 +18,9 @@ from sheetwright.model.format import Border, CellFormat, Fill, Font, Side
 from sheetwright.model.table import ListTable, ListTableColumn
 from sheetwright.model.validation import DataValidation
 from sheetwright.model.workbook import NamedRange, Sheet, Workbook
+from sheetwright.security import SecurityLimits
 from sheetwright.xlsx.cf_translate import cf_from_openpyxl_rule
+from sheetwright.xlsx.safe_load import safe_load_workbook
 
 
 _PRINT_AREA_PREFIX = re.compile(r"^(?:'[^']+'|[^!]+)!")
@@ -175,9 +176,9 @@ def _read_conditional_formats(ws: Worksheet) -> list[ConditionalFormat]:
     return out
 
 
-def read_xlsx(path: Path) -> Workbook:
+def read_xlsx(path: Path, *, limits: SecurityLimits) -> Workbook:
     path = Path(path)
-    src = openpyxl.load_workbook(path, data_only=False)
+    src = safe_load_workbook(path, limits, data_only=False, read_only=False)
     wb = Workbook(name=path.stem)
 
     for ws in src.worksheets:

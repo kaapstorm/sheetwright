@@ -7,6 +7,7 @@ from testsweet import test
 
 from sheetwright.xlsx.reader import read_xlsx
 from sheetwright.xlsx.writer import write_xlsx
+from sheetwright.security import SecurityLimits
 
 
 @contextmanager
@@ -29,7 +30,7 @@ def xlsx_reader_picks_up_freeze_panes():
     with _tmp_path() as tmp_path:
         src = tmp_path / 'in.xlsx'
         _wb_with_freeze(src, 'B2')
-        wb = read_xlsx(src)
+        wb = read_xlsx(src, limits=SecurityLimits.defaults())
         assert wb.sheet('S').frozen_panes == 'B2'
 
 
@@ -38,10 +39,10 @@ def xlsx_writer_emits_freeze_panes():
     with _tmp_path() as tmp_path:
         src = tmp_path / 'in.xlsx'
         _wb_with_freeze(src, 'C5')
-        wb = read_xlsx(src)
+        wb = read_xlsx(src, limits=SecurityLimits.defaults())
         out = tmp_path / 'out.xlsx'
         write_xlsx(wb, out)
-        re_read = read_xlsx(out)
+        re_read = read_xlsx(out, limits=SecurityLimits.defaults())
         assert re_read.sheet('S').frozen_panes == 'C5'
 
 
@@ -53,5 +54,10 @@ def no_freeze_round_trips_as_none():
         wb.active.title = 'S'
         wb.save(src)
         out = tmp_path / 'out.xlsx'
-        write_xlsx(read_xlsx(src), out)
-        assert read_xlsx(out).sheet('S').frozen_panes is None
+        write_xlsx(read_xlsx(src, limits=SecurityLimits.defaults()), out)
+        assert (
+            read_xlsx(out, limits=SecurityLimits.defaults())
+            .sheet('S')
+            .frozen_panes
+            is None
+        )

@@ -7,6 +7,7 @@ from testsweet import test
 
 from sheetwright.xlsx.writer import write_xlsx
 from tests.fixtures.workbooks import write_simple_xlsx
+from sheetwright.security import SecurityLimits
 
 
 def _sha256(p: Path) -> str:
@@ -21,7 +22,7 @@ def two_builds_of_same_workbook_are_byte_identical():
         tmp_path = Path(td)
         src = tmp_path / 'src.xlsx'
         write_simple_xlsx(src)
-        wb = read_xlsx(src)
+        wb = read_xlsx(src, limits=SecurityLimits.defaults())
 
         a = tmp_path / 'a.xlsx'
         b = tmp_path / 'b.xlsx'

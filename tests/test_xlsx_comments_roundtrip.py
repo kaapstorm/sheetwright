@@ -8,6 +8,7 @@ from testsweet import test
 
 from sheetwright.xlsx.reader import read_xlsx
 from sheetwright.xlsx.writer import write_xlsx
+from sheetwright.security import SecurityLimits
 
 
 @contextmanager
@@ -30,7 +31,7 @@ def reader_picks_up_comment():
     with _tmp_path() as tmp_path:
         src = tmp_path / 'in.xlsx'
         _wb_with_comment(src, 'B2', 'Alice', 'Check this')
-        wb = read_xlsx(src)
+        wb = read_xlsx(src, limits=SecurityLimits.defaults())
         s = wb.sheet('S')
         assert 'B2' in s.comments
         assert s.comments['B2'].author == 'Alice'
@@ -43,7 +44,7 @@ def comment_round_trips_through_writer():
         src = tmp_path / 'in.xlsx'
         _wb_with_comment(src, 'B2', 'Alice', 'Check this')
         out = tmp_path / 'out.xlsx'
-        write_xlsx(read_xlsx(src), out)
-        s = read_xlsx(out).sheet('S')
+        write_xlsx(read_xlsx(src, limits=SecurityLimits.defaults()), out)
+        s = read_xlsx(out, limits=SecurityLimits.defaults()).sheet('S')
         assert s.comments['B2'].text == 'Check this'
         assert s.comments['B2'].author == 'Alice'

@@ -18,10 +18,10 @@ import tempfile
 from pathlib import Path
 from typing import Dict, cast
 
-import openpyxl
-
 from sheetwright.calc.base import CalcEngine, CalcResult
 from sheetwright.model.cell import CellValue
+from sheetwright.security import SecurityLimits
+from sheetwright.xlsx.safe_load import safe_load_workbook
 
 
 class LibreOfficeError(RuntimeError):
@@ -33,7 +33,9 @@ class LibreOfficeEngine(CalcEngine):
         self.soffice = soffice
         self.timeout = timeout
 
-    def evaluate(self, xlsx_path: Path) -> CalcResult:
+    def evaluate(
+        self, xlsx_path: Path, *, limits: SecurityLimits
+    ) -> CalcResult:
         xlsx_path = Path(xlsx_path).resolve()
         with tempfile.TemporaryDirectory(prefix='cshs-calc-') as td_str:
             td = Path(td_str)
@@ -85,11 +87,11 @@ class LibreOfficeEngine(CalcEngine):
                     )
                 converted = candidates[0]
 
-            return _read_calculated(converted)
+            return _read_calculated(converted, limits)
 
 
-def _read_calculated(xlsx_path: Path) -> CalcResult:
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+def _read_calculated(xlsx_path: Path, limits: SecurityLimits) -> CalcResult:
+    wb = safe_load_workbook(xlsx_path, limits, data_only=True, read_only=True)
     out: CalcResult = {}
     for ws in wb.worksheets:
         sheet: Dict[str, CellValue] = {}

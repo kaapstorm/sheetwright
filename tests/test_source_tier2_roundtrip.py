@@ -7,6 +7,7 @@ from sheetwright.source.reader import read_source
 from sheetwright.source.writer import write_source
 from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.workbooks import write_tier2_xlsx
+from sheetwright.security import SecurityLimits
 
 
 def _project_dir(tmp_path: Path) -> Path:
@@ -29,7 +30,7 @@ def tier2_features_round_trip_through_source():
         write_tier2_xlsx(src)
         project = _project_dir(tmp_path)
 
-        wb_in = read_xlsx(src)
+        wb_in = read_xlsx(src, limits=SecurityLimits.defaults())
         write_source(wb_in, project)
         wb_via_src = read_source(project)
 

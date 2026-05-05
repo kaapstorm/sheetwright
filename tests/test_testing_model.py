@@ -7,6 +7,7 @@ from testsweet import catch_exceptions, test
 from sheetwright.calc.base import CalcEngine, CalcResult
 from sheetwright.model.cell import Cell
 from sheetwright.model.workbook import Sheet, Workbook
+from sheetwright.security import SecurityLimits
 from sheetwright.testing import Model
 from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_simple_xlsx
@@ -71,7 +72,9 @@ def model_get_literal_value():
 
 
 class _EmptyEngine(CalcEngine):
-    def evaluate(self, xlsx_path: Path) -> CalcResult:
+    def evaluate(
+        self, xlsx_path: Path, *, limits: SecurityLimits
+    ) -> CalcResult:
         return {}
 
 

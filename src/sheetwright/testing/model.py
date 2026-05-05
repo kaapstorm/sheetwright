@@ -10,6 +10,7 @@ from sheetwright.calc import CalcEngine, CalcResult, get_calc_engine
 from sheetwright.model.cell import Cell, CellValue
 from sheetwright.model.workbook import Workbook
 from sheetwright.project import Project
+from sheetwright.security import SecurityLimits, get_operator_limits
 from sheetwright.source.reader import read_source
 from sheetwright.testing.addresses import parse_address
 from sheetwright.xlsx.writer import write_xlsx
@@ -23,16 +24,25 @@ class Model:
     calculated value (or the literal value for non-formula cells).
     """
 
-    def __init__(self, wb: Workbook, engine: CalcEngine):
+    def __init__(
+        self,
+        wb: Workbook,
+        engine: CalcEngine,
+        limits: SecurityLimits = SecurityLimits.defaults(),
+    ):
         self._wb = wb
         self._engine = engine
+        self._limits = limits
         self._calculated: Optional[CalcResult] = None
 
     @classmethod
     def open(cls, project_path: str | Path) -> 'Model':
         project = Project.open(project_path)
         wb = read_source(project.root)
-        return cls(wb, get_calc_engine(project.config.calc_engine))
+        limits = SecurityLimits.effective(
+            get_operator_limits(), project.config.security
+        )
+        return cls(wb, get_calc_engine(project.config.calc_engine), limits)
 
     @property
     def workbook(self) -> Workbook:
@@ -64,4 +74,4 @@ class Model:
         with tempfile.TemporaryDirectory(prefix='cshs-model-') as td:
             xlsx = Path(td) / 'model.xlsx'
             write_xlsx(self._wb, xlsx)
-            self._calculated = self._engine.evaluate(xlsx)
+            self._calculated = self._engine.evaluate(xlsx, limits=self._limits)

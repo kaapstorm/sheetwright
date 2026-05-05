@@ -19,6 +19,7 @@ from testsweet import test
 from sheetwright.model.conditional import CellIsRule
 from sheetwright.xlsx.reader import read_xlsx
 from sheetwright.xlsx.writer import write_xlsx
+from sheetwright.security import SecurityLimits
 
 
 @contextmanager
@@ -47,8 +48,8 @@ def cf_with_border_round_trips_structure_but_drops_border():
         src = tmp_path / 'in.xlsx'
         _wb_with_bordered_cf(src)
         out = tmp_path / 'out.xlsx'
-        write_xlsx(read_xlsx(src), out)
-        s = read_xlsx(out).sheet('S')
+        write_xlsx(read_xlsx(src, limits=SecurityLimits.defaults()), out)
+        s = read_xlsx(out, limits=SecurityLimits.defaults()).sheet('S')
 
         assert len(s.conditional_formats) == 1
         cf = s.conditional_formats[0]
@@ -79,8 +80,8 @@ def cf_with_font_bold_round_trips_through_xlsx():
         wb.save(src)
 
         out = tmp_path / 'out_font.xlsx'
-        write_xlsx(read_xlsx(src), out)
-        s = read_xlsx(out).sheet('S')
+        write_xlsx(read_xlsx(src, limits=SecurityLimits.defaults()), out)
+        s = read_xlsx(out, limits=SecurityLimits.defaults()).sheet('S')
 
         cf = s.conditional_formats[0]
         assert isinstance(cf, CellIsRule)

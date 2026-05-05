@@ -8,6 +8,7 @@ from testsweet import test
 from sheetwright.cli import main
 from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.workbooks import write_simple_xlsx
+from sheetwright.security import SecurityLimits
 
 
 @contextmanager
@@ -48,7 +49,9 @@ def built_xlsx_has_same_sheets_and_values():
     with _imported_project() as p:
         runner = CliRunner()
         runner.invoke(main, ['build', '--project', str(p)])
-        wb = read_xlsx(p / 'build' / 'in.xlsx')
+        wb = read_xlsx(
+            p / 'build' / 'in.xlsx', limits=SecurityLimits.defaults()
+        )
         assert [s.name for s in wb.sheets] == ['Inputs', 'Outputs']
         assert wb.sheet('Inputs').get('B1').value == 0.04
         assert (

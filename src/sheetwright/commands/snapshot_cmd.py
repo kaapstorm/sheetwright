@@ -12,6 +12,7 @@ from sheetwright.calc.cache import (
 )
 from sheetwright.exceptions import ProjectError
 from sheetwright.project import Project
+from sheetwright.security import SecurityLimits, get_operator_limits
 from sheetwright.snapshot import (
     Snapshot,
     diff_snapshots,
@@ -37,10 +38,15 @@ def run(*, project_path: str, update: bool) -> None:
             f'No built xlsx at {built}. Run `sheetwright build` first.'
         )
 
+    limits = SecurityLimits.effective(
+        get_operator_limits(), project.config.security
+    )
     key = hash_xlsx(built)
     cached = read_cached(project.calc_cache_dir, key)
     if cached is None:
-        cached = get_calc_engine(cfg.calc_engine).evaluate(built)
+        cached = get_calc_engine(cfg.calc_engine).evaluate(
+            built, limits=limits
+        )
         write_cached(project.calc_cache_dir, key, cached)
 
     workbook = read_source(project.root)

@@ -14,6 +14,7 @@ from sheetwright.calc.cache import (
 )
 from sheetwright.exceptions import ProjectError
 from sheetwright.project import Project
+from sheetwright.security import SecurityLimits, get_operator_limits
 
 
 CACHE_HIT_MESSAGE = 'cache hit'
@@ -43,7 +44,10 @@ def run(*, project_path: str, force: bool) -> None:
             click.echo(f'{CACHE_HIT_MESSAGE}: {key[:12]}')
             return
 
+    limits = SecurityLimits.effective(
+        get_operator_limits(), project.config.security
+    )
     engine = get_calc_engine(cfg.calc_engine)
-    result = engine.evaluate(built)
+    result = engine.evaluate(built, limits=limits)
     path = write_cached(project.calc_cache_dir, key, result)
     click.echo(f'recalculated: {path}')

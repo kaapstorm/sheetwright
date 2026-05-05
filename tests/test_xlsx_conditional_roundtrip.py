@@ -13,6 +13,7 @@ from testsweet import test
 
 from sheetwright.xlsx.reader import read_xlsx
 from sheetwright.xlsx.writer import write_xlsx
+from sheetwright.security import SecurityLimits
 
 
 @contextmanager
@@ -71,8 +72,8 @@ def cell_is_rule_round_trips():
         src = tmp_path / 'in.xlsx'
         _wb_with_cell_is(src)
         out = tmp_path / 'out.xlsx'
-        write_xlsx(read_xlsx(src), out)
-        s = read_xlsx(out).sheet('S')
+        write_xlsx(read_xlsx(src, limits=SecurityLimits.defaults()), out)
+        s = read_xlsx(out, limits=SecurityLimits.defaults()).sheet('S')
         assert len(s.conditional_formats) == 1
         cf = s.conditional_formats[0]
         assert isinstance(cf, CellIsRule)
@@ -89,8 +90,8 @@ def formula_rule_round_trips():
         src = tmp_path / 'in.xlsx'
         _wb_with_formula(src)
         out = tmp_path / 'out.xlsx'
-        write_xlsx(read_xlsx(src), out)
-        s = read_xlsx(out).sheet('S')
+        write_xlsx(read_xlsx(src, limits=SecurityLimits.defaults()), out)
+        s = read_xlsx(out, limits=SecurityLimits.defaults()).sheet('S')
         assert any(isinstance(cf, FormulaRule) for cf in s.conditional_formats)
         cf = next(
             c for c in s.conditional_formats if isinstance(c, FormulaRule)
@@ -106,8 +107,8 @@ def color_scale_rule_round_trips():
         src = tmp_path / 'in.xlsx'
         _wb_with_color_scale(src)
         out = tmp_path / 'out.xlsx'
-        write_xlsx(read_xlsx(src), out)
-        s = read_xlsx(out).sheet('S')
+        write_xlsx(read_xlsx(src, limits=SecurityLimits.defaults()), out)
+        s = read_xlsx(out, limits=SecurityLimits.defaults()).sheet('S')
         cf = next(
             c for c in s.conditional_formats if isinstance(c, ColorScaleRule)
         )

@@ -7,6 +7,7 @@ from testsweet import test
 from sheetwright.xlsx.reader import read_xlsx
 from sheetwright.xlsx.writer import write_xlsx
 from tests.fixtures.workbooks import write_formatted_xlsx
+from sheetwright.security import SecurityLimits
 
 
 @contextmanager
@@ -16,9 +17,9 @@ def _round_tripped():
         src = tmp_path / 'fmt.xlsx'
         out = tmp_path / 'fmt-out.xlsx'
         write_formatted_xlsx(src)
-        wb = read_xlsx(src)
+        wb = read_xlsx(src, limits=SecurityLimits.defaults())
         write_xlsx(wb, out)
-        yield read_xlsx(out)
+        yield read_xlsx(out, limits=SecurityLimits.defaults())
 
 
 @test

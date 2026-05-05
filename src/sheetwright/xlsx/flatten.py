@@ -22,6 +22,8 @@ from openpyxl.formula.tokenizer import Tokenizer
 
 from sheetwright.model.cell import Cell
 from sheetwright.model.workbook import Workbook
+from sheetwright.security import SecurityLimits
+from sheetwright.xlsx.safe_load import safe_load_workbook
 
 
 # An external reference in a tokenized formula has subtype RANGE and
@@ -34,9 +36,13 @@ def _is_external_ref_token(value: str) -> bool:
     return bool(_EXTERNAL_RE.match(value))
 
 
-def detect_external_refs(xlsx_path: Path) -> Tuple[str, ...]:
+def detect_external_refs(
+    xlsx_path: Path, *, limits: SecurityLimits
+) -> Tuple[str, ...]:
     """Return unique external-ref tokens present in any formula."""
-    src = openpyxl.load_workbook(xlsx_path, data_only=False)
+    src = safe_load_workbook(
+        xlsx_path, limits, data_only=False, read_only=False
+    )
     found: set[str] = set()
     for ws in src.worksheets:
         for row in ws.iter_rows():
@@ -54,14 +60,18 @@ def detect_external_refs(xlsx_path: Path) -> Tuple[str, ...]:
     return tuple(sorted(found))
 
 
-def flatten_external_refs(wb: Workbook, xlsx_path: Path) -> None:
+def flatten_external_refs(
+    wb: Workbook, xlsx_path: Path, *, limits: SecurityLimits
+) -> None:
     """Replace external-ref formulas in `wb` with their cached values.
 
     `wb` must have been loaded from `xlsx_path` (or an equivalent
     file) — we re-open the same file in data_only mode to pull cached
     values per (sheet, address).
     """
-    cached = openpyxl.load_workbook(xlsx_path, data_only=True)
+    cached = safe_load_workbook(
+        xlsx_path, limits, data_only=True, read_only=False
+    )
     for sheet in wb.sheets:
         ws = cached[sheet.name]
         for addr, cell in list(sheet.cells.items()):

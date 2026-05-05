@@ -10,6 +10,7 @@ import click
 from sheetwright.exceptions import ProjectError
 from sheetwright.project import Project
 from sheetwright.reimport import archive_xlsx
+from sheetwright.security import SecurityLimits, get_operator_limits
 from sheetwright.source.writer import write_source
 from sheetwright.xlsx.flatten import (
     detect_external_refs,
@@ -69,7 +70,10 @@ def run(
         )
         return
 
-    extrefs = detect_external_refs(xlsx)
+    limits = SecurityLimits.effective(
+        get_operator_limits(), project.config.security
+    )
+    extrefs = detect_external_refs(xlsx, limits=limits)
     if extrefs and not flatten:
         raise click.ClickException(
             'Workbook contains external references; '
@@ -78,9 +82,9 @@ def run(
             'First few: ' + ', '.join(extrefs[:3])
         )
 
-    wb = read_xlsx(xlsx)
+    wb = read_xlsx(xlsx, limits=limits)
     if flatten:
-        flatten_external_refs(wb, xlsx)
+        flatten_external_refs(wb, xlsx, limits=limits)
     write_source(wb, project_root)
 
     if archive:

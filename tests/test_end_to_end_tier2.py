@@ -9,6 +9,7 @@ from sheetwright.cli import main
 from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.libreoffice import requires_libreoffice
 from tests.fixtures.workbooks import write_tier2_xlsx
+from sheetwright.security import SecurityLimits
 
 
 @contextmanager
@@ -43,7 +44,9 @@ def tier2_round_trips_through_cli():
     )
 
     with _project() as p:
-        out = read_xlsx(p / 'build' / 'in.xlsx')
+        out = read_xlsx(
+            p / 'build' / 'in.xlsx', limits=SecurityLimits.defaults()
+        )
         s = out.sheet('S')
 
         assert s.frozen_panes == 'B2'
@@ -71,7 +74,9 @@ def tier2_built_xlsx_evaluates_under_libreoffice():
 
     with _project() as p:
         built = p / 'build' / 'in.xlsx'
-        result = LibreOfficeEngine().evaluate(built)
+        result = LibreOfficeEngine().evaluate(
+            built, limits=SecurityLimits.defaults()
+        )
         assert any(result.values()), (
             f'libreoffice returned empty result for {built}; '
             'the built xlsx may be corrupt'

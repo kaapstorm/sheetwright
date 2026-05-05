@@ -4,6 +4,7 @@ from pathlib import Path
 from testsweet import catch_exceptions, test
 
 from sheetwright.calc import CalcEngine, CalcResult, get_calc_engine
+from sheetwright.security import SecurityLimits
 
 
 @test
@@ -28,7 +29,9 @@ def calc_result_shape():
 
 
 class _Recorder(CalcEngine):
-    def evaluate(self, xlsx_path: Path) -> CalcResult:
+    def evaluate(
+        self, xlsx_path: Path, *, limits: SecurityLimits
+    ) -> CalcResult:
         return {'Recorded': {'A1': str(xlsx_path)}}
 
 
@@ -37,5 +40,7 @@ def engine_subclass_evaluates():
     with tempfile.TemporaryDirectory() as td:
         tmp_path = Path(td)
         eng = _Recorder()
-        out = eng.evaluate(tmp_path / 'x.xlsx')
+        out = eng.evaluate(
+            tmp_path / 'x.xlsx', limits=SecurityLimits.defaults()
+        )
         assert out == {'Recorded': {'A1': str(tmp_path / 'x.xlsx')}}

@@ -8,6 +8,7 @@ from testsweet import params, test
 
 from sheetwright.xlsx.reader import read_xlsx
 from sheetwright.xlsx.writer import write_xlsx
+from sheetwright.security import SecurityLimits
 
 
 @contextmanager
@@ -48,7 +49,7 @@ def reader_picks_up_table():
     with _tmp_path() as tmp_path:
         src = tmp_path / 'in.xlsx'
         _wb_with_table(src)
-        wb = read_xlsx(src)
+        wb = read_xlsx(src, limits=SecurityLimits.defaults())
         s = wb.sheet('S')
         assert len(s.tables) == 1
         assert s.tables[0].name == 'Sales'
@@ -66,8 +67,8 @@ def table_round_trips_through_writer():
         src = tmp_path / 'in.xlsx'
         _wb_with_table(src)
         out = tmp_path / 'out.xlsx'
-        write_xlsx(read_xlsx(src), out)
-        s = read_xlsx(out).sheet('S')
+        write_xlsx(read_xlsx(src, limits=SecurityLimits.defaults()), out)
+        s = read_xlsx(out, limits=SecurityLimits.defaults()).sheet('S')
         assert len(s.tables) == 1
         assert s.tables[0].name == 'Sales'
         assert [c.name for c in s.tables[0].columns] == [
@@ -119,8 +120,8 @@ def table_round_trips_with_varying_header_and_totals_rows(
         wb.save(src)
 
         out = tmp_path / f'out_h{header_count}_t{totals_count}.xlsx'
-        write_xlsx(read_xlsx(src), out)
-        s = read_xlsx(out).sheet('S')
+        write_xlsx(read_xlsx(src, limits=SecurityLimits.defaults()), out)
+        s = read_xlsx(out, limits=SecurityLimits.defaults()).sheet('S')
 
         assert len(s.tables) == 1
         assert s.tables[0].header_row_count == header_count

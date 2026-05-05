@@ -10,6 +10,7 @@ from sheetwright.xlsx.flatten import (
 )
 from sheetwright.xlsx.reader import read_xlsx
 from tests.fixtures.external_xlsx import write_xlsx_with_external_ref
+from sheetwright.security import SecurityLimits
 
 
 @contextmanager
@@ -23,7 +24,7 @@ def detect_finds_external_ref():
     with _tmp_path() as tmp_path:
         p = tmp_path / 'in.xlsx'
         write_xlsx_with_external_ref(p, cached_value=42.0)
-        refs = detect_external_refs(p)
+        refs = detect_external_refs(p, limits=SecurityLimits.defaults())
         assert any('[other.xlsx]' in r for r in refs)
 
 
@@ -54,7 +55,7 @@ def detect_ignores_structured_table_references():
         )
         ws['C1'] = '=SUM(Sales[Q1])'
         wb.save(p)
-        refs = detect_external_refs(p)
+        refs = detect_external_refs(p, limits=SecurityLimits.defaults())
         assert refs == ()
 
 
@@ -68,7 +69,7 @@ def detect_returns_empty_when_no_externals():
         ws = wb.active
         ws['A1'] = '=B1+1'
         wb.save(p)
-        assert detect_external_refs(p) == ()
+        assert detect_external_refs(p, limits=SecurityLimits.defaults()) == ()
 
 
 @test
@@ -76,8 +77,8 @@ def flatten_replaces_external_formula_with_cached_value():
     with _tmp_path() as tmp_path:
         src = tmp_path / 'in.xlsx'
         write_xlsx_with_external_ref(src, cached_value=42.0)
-        wb = read_xlsx(src)
-        flatten_external_refs(wb, src)
+        wb = read_xlsx(src, limits=SecurityLimits.defaults())
+        flatten_external_refs(wb, src, limits=SecurityLimits.defaults())
         cell = wb.sheet('S').get('A1')
         assert cell.formula is None
         assert cell.value == 42.0
@@ -97,6 +98,6 @@ def flatten_leaves_internal_formulas_untouched():
         ws['A1'] = 1
         ws['A2'] = '=A1*2'
         wb_op.save(src)
-        wb = read_xlsx(src)
-        flatten_external_refs(wb, src)
+        wb = read_xlsx(src, limits=SecurityLimits.defaults())
+        flatten_external_refs(wb, src, limits=SecurityLimits.defaults())
         assert wb.sheet('S').get('A2').formula == '=A1*2'

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict
 
 from sheetwright.model.cell import CellValue
+from sheetwright.security import SecurityLimits
 
 CalcResult = Dict[str, Dict[str, CellValue]]
 
@@ -15,5 +16,7 @@ class CalcEngine(ABC):
     """Abstract calc engine: evaluate a built .xlsx and return values."""
 
     @abstractmethod
-    def evaluate(self, xlsx_path: Path) -> CalcResult:
+    def evaluate(
+        self, xlsx_path: Path, *, limits: SecurityLimits
+    ) -> CalcResult:
         """Return calculated values keyed by sheet, then by A1 address."""
