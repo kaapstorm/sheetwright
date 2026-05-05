@@ -41,16 +41,14 @@ def _check_zip(path: Path, limits: SecurityLimits) -> None:
                 _WORKSHEET_PREFIX
             ) and not info.filename.endswith('/'):
                 sheet_count += 1
-            if (
-                info.compress_size > 0
-                and info.file_size / info.compress_size > _RATIO_THRESHOLD
-                and info.file_size > _SIZE_FLOOR
-            ):
-                raise XlsxTooLargeError(
-                    f'Compression ratio {info.file_size / info.compress_size:.0f}:1 '
-                    f'on {info.filename!r} ({info.file_size:,} bytes uncompressed) '
-                    f'exceeds the ratio threshold — possible zip bomb'
-                )
+            if info.compress_size:
+                ratio = info.file_size / info.compress_size
+                if ratio > _RATIO_THRESHOLD and info.file_size > _SIZE_FLOOR:
+                    raise XlsxTooLargeError(
+                        f'Compression ratio {ratio:.0f}:1 on {info.filename!r} '
+                        f'exceeds threshold {_RATIO_THRESHOLD} (file size '
+                        f'{info.file_size} > floor {_SIZE_FLOOR}).'
+                    )
             if info.filename == _SHARED_STRINGS:
                 cap = limits.max_xlsx_shared_strings * 32
                 if info.file_size > cap:
@@ -63,12 +61,12 @@ def _check_zip(path: Path, limits: SecurityLimits) -> None:
         if total_uncompressed > limits.max_xlsx_uncompressed_bytes:
             raise XlsxTooLargeError(
                 f'xlsx uncompressed size {total_uncompressed:,} bytes exceeds '
-                f'cap {limits.max_xlsx_uncompressed_bytes:,} bytes'
+                f'max_xlsx_uncompressed_bytes={limits.max_xlsx_uncompressed_bytes:,}'
             )
         if sheet_count > limits.max_xlsx_sheet_count:
             raise XlsxTooLargeError(
                 f'xlsx contains {sheet_count} worksheets; '
-                f'cap is {limits.max_xlsx_sheet_count}'
+                f'max_xlsx_sheet_count={limits.max_xlsx_sheet_count}'
             )
 
 
@@ -82,5 +80,5 @@ def _stream_cell_count(wb: Workbook, limits: SecurityLimits) -> None:
                     if count > limits.max_xlsx_cells_per_sheet:
                         raise XlsxTooLargeError(
                             f'Sheet {ws.title!r} exceeds '
-                            f'{limits.max_xlsx_cells_per_sheet:,} cells'
+                            f'max_xlsx_cells_per_sheet={limits.max_xlsx_cells_per_sheet:,}'
                         )

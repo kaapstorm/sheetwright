@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import io
+import dataclasses
 import tempfile
 import zipfile
 from pathlib import Path
+from typing import Any
 
 import openpyxl
 from testsweet import catch_exceptions, test
@@ -15,11 +16,8 @@ from sheetwright.security import SecurityLimits
 from sheetwright.xlsx.safe_load import safe_load_workbook
 
 
-def _limits(**kwargs: object) -> SecurityLimits:
-    defaults = SecurityLimits.defaults()
-    import dataclasses
-
-    return dataclasses.replace(defaults, **kwargs)  # type: ignore[arg-type]
+def _limits(**kwargs: Any) -> SecurityLimits:
+    return dataclasses.replace(SecurityLimits.defaults(), **kwargs)
 
 
 def _write_simple_xlsx(path: Path) -> None:
@@ -67,10 +65,7 @@ def byte_cap_rejects_oversized_xlsx():
         with catch_exceptions() as excs:
             safe_load_workbook(p, limits)
         assert excs and isinstance(excs[0], XlsxTooLargeError)
-        assert (
-            'uncompressed' in str(excs[0]).lower()
-            or 'bytes' in str(excs[0]).lower()
-        )
+        assert 'max_xlsx_uncompressed_bytes' in str(excs[0])
 
 
 @test
@@ -98,10 +93,7 @@ def sheet_count_cap_rejects_too_many_sheets():
         with catch_exceptions() as excs:
             safe_load_workbook(p, limits)
         assert excs and isinstance(excs[0], XlsxTooLargeError)
-        assert (
-            'worksheet' in str(excs[0]).lower()
-            or 'sheet' in str(excs[0]).lower()
-        )
+        assert 'max_xlsx_sheet_count' in str(excs[0])
 
 
 @test
@@ -130,9 +122,7 @@ def streaming_cell_count_rejects_over_cap():
         with catch_exceptions() as excs:
             safe_load_workbook(p, limits, read_only=True)
         assert excs and isinstance(excs[0], XlsxTooLargeError)
-        assert (
-            'cells' in str(excs[0]).lower() or 'cell' in str(excs[0]).lower()
-        )
+        assert 'max_xlsx_cells_per_sheet' in str(excs[0])
 
 
 @test
@@ -149,58 +139,9 @@ def streaming_cell_count_passes_under_cap():
 # ---------------------------------------------------------------------------
 # Compression-ratio bomb boundary tests
 #
-# Strategy: build a synthetic zip in memory with controlled file_size and
-# compress_size by writing a highly compressible payload (zero bytes) and
-# then monkey-patching the ZipInfo if needed.  We use a zip member named
-# 'xl/worksheets/sheet1.xml' so it counts as a worksheet entry.
-#
-# The check is: ratio > 1000 AND file_size > 8 MiB → raise.
+# Use _FakeZipFile to fabricate ZipInfo entries with controlled
+# file_size / compress_size. Real zip I/O is not needed for boundary tests.
 # ---------------------------------------------------------------------------
-
-
-def _build_synthetic_zip(file_size: int, compress_size: int) -> bytes:
-    """Build a zip archive where the single member has approximately the
-    requested uncompressed/compressed sizes.
-
-    We write ``file_size`` zero bytes (highly compressible) to get the
-    compression engine to work, then rewrite the local-file and central-
-    directory headers with fabricated sizes so the _check_zip logic sees
-    the sizes we want without us having to produce the actual data.
-    """
-    member_name = 'xl/worksheets/sheet1.xml'
-    payload = b'\x00' * file_size
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr(member_name, payload)
-    raw = buf.getvalue()
-
-    # Parse the zip to locate ZipInfo, then monkey-patch sizes via
-    # zipfile's own API after re-opening.
-    buf.seek(0)
-    with zipfile.ZipFile(buf) as zf:
-        info = zf.infolist()[0]
-        real_compress = info.compress_size
-
-    # We need to fake compress_size without re-encoding the deflate stream.
-    # Build a fresh ZipFile where we store the member as STORED (no
-    # compression) but then rewrite the header bytes so infolist() sees the
-    # fabricated compress_size.  A simpler approach: use STORED so
-    # compress_size == file_size naturally, and then scale up compress_size
-    # using struct-level patching.
-    #
-    # Simplest deterministic approach: build the zip with STORED compression
-    # (compress_size == file_size), then patch the header to set the
-    # desired compress_size.  The ZipFile reader only looks at headers for
-    # infolist(), so the payload bytes don't need to be valid deflate.
-
-    # We can't practically produce a 16 MiB zip payload in tests, so we
-    # use a small real payload and patch the ZipInfo.file_size /
-    # compress_size fields using zipfile.ZipInfo directly via monkeypatching
-    # the infolist.  The actual approach: subclass ZipFile and override
-    # infolist() to return faked ZipInfo objects.
-
-    # Return the real bytes; the test will monkey-patch via _FakeZipFile.
-    return raw
 
 
 class _FakeZipFile:

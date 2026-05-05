@@ -28,8 +28,10 @@ class Model:
         self,
         wb: Workbook,
         engine: CalcEngine,
-        limits: SecurityLimits = SecurityLimits.defaults(),
-    ):
+        limits: SecurityLimits | None = None,
+    ) -> None:
+        if limits is None:
+            limits = SecurityLimits.effective(get_operator_limits(), None)
         self._wb = wb
         self._engine = engine
         self._limits = limits
