@@ -5,7 +5,12 @@ from unittest.mock import patch
 
 from testsweet import test
 
-from sheetwright.security import OperatorLimits, SecurityLimits
+from sheetwright.security import (
+    OperatorLimits,
+    SecurityLimits,
+    _reset_operator_limits,
+    get_operator_limits,
+)
 
 
 def _operator(**kwargs: object) -> OperatorLimits:
@@ -254,3 +259,20 @@ def from_environment_falls_back_per_field_on_unparseable():
     assert limits.max_xlsx_cells_per_sheet == defaults.max_xlsx_cells_per_sheet
     assert limits.max_xlsx_shared_strings == defaults.max_xlsx_shared_strings
     assert limits.soffice_timeout == defaults.soffice_timeout
+
+
+# ---------------------------------------------------------------------------
+# get_operator_limits() — lazy init from environment
+# ---------------------------------------------------------------------------
+
+
+@test
+def get_operator_limits_returns_value_from_env():
+    _reset_operator_limits()
+    try:
+        env = {'SHEETWRIGHT_MAX_XLSX_SHEETS': '42'}
+        with patch.dict(os.environ, env):
+            limits = get_operator_limits()
+        assert limits.max_xlsx_sheet_count == 42
+    finally:
+        _reset_operator_limits()

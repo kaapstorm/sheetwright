@@ -36,16 +36,8 @@ from sheetwright.reimport import (
     save_session,
     stage_reimport,
 )
-from sheetwright.security import OperatorLimits
+from sheetwright.security import get_operator_limits
 from sheetwright.source.reader import read_source
-
-_operator_limits: Optional[OperatorLimits] = None
-
-
-def get_operator_limits() -> OperatorLimits:
-    """Return the process-wide operator limits (built once at server startup)."""
-    assert _operator_limits is not None, 'MCP server not initialised'
-    return _operator_limits
 
 
 def _ok(message: str, **extra: Any) -> Dict[str, Any]:
@@ -267,8 +259,6 @@ def do_reimport_abort(project: str) -> Dict[str, Any]:
 
 def build_server() -> FastMCP:
     """Construct and return the sheetwright MCP server."""
-    global _operator_limits
-    _operator_limits = OperatorLimits.from_environment()
     mcp = FastMCP('sheetwright')
     mcp.tool()(do_ping)
     mcp.tool()(do_diff)

@@ -49,34 +49,27 @@ class SecurityLimits:
         Project may only tighten the operator ceiling, never raise it.
         If ``project`` is ``None``, returns operator values unchanged.
         """
-        if project is None:
-            return cls(
-                max_xlsx_uncompressed_bytes=operator.max_xlsx_uncompressed_bytes,
-                max_xlsx_sheet_count=operator.max_xlsx_sheet_count,
-                max_xlsx_cells_per_sheet=operator.max_xlsx_cells_per_sheet,
-                max_xlsx_shared_strings=operator.max_xlsx_shared_strings,
-                soffice_timeout=operator.soffice_timeout,
-            )
+        p = project if project is not None else operator
         return cls(
             max_xlsx_uncompressed_bytes=min(
                 operator.max_xlsx_uncompressed_bytes,
-                project.max_xlsx_uncompressed_bytes,
+                p.max_xlsx_uncompressed_bytes,
             ),
             max_xlsx_sheet_count=min(
                 operator.max_xlsx_sheet_count,
-                project.max_xlsx_sheet_count,
+                p.max_xlsx_sheet_count,
             ),
             max_xlsx_cells_per_sheet=min(
                 operator.max_xlsx_cells_per_sheet,
-                project.max_xlsx_cells_per_sheet,
+                p.max_xlsx_cells_per_sheet,
             ),
             max_xlsx_shared_strings=min(
                 operator.max_xlsx_shared_strings,
-                project.max_xlsx_shared_strings,
+                p.max_xlsx_shared_strings,
             ),
             soffice_timeout=min(
                 operator.soffice_timeout,
-                project.soffice_timeout,
+                p.soffice_timeout,
             ),
         )
 
@@ -117,6 +110,28 @@ class OperatorLimits:
                 _DEFAULT_SOFFICE_TIMEOUT,
             ),
         )
+
+
+_operator_limits: OperatorLimits | None = None
+
+
+def get_operator_limits() -> OperatorLimits:
+    """Process-wide operator limits.
+
+    First call reads env vars and caches; subsequent calls return
+    the cached value. Idempotent because `from_environment()` is
+    pure with respect to its inputs.
+    """
+    global _operator_limits
+    if _operator_limits is None:
+        _operator_limits = OperatorLimits.from_environment()
+    return _operator_limits
+
+
+def _reset_operator_limits() -> None:
+    """Reset the cached operator limits. For tests only."""
+    global _operator_limits
+    _operator_limits = None
 
 
 def _read_int_env(name: str, default: int) -> int:

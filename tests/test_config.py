@@ -1,4 +1,4 @@
-from testsweet import test
+from testsweet import catch_exceptions, test
 
 from sheetwright.config import (
     ProjectConfig,
@@ -8,6 +8,7 @@ from sheetwright.config import (
     load_project,
     load_workbook,
 )
+from sheetwright.exceptions import ProjectError
 from sheetwright.model.workbook import NamedRange
 from sheetwright.security import SecurityLimits
 
@@ -61,6 +62,16 @@ def project_config_partial_security_block_uses_defaults():
         == defaults.max_xlsx_shared_strings
     )
     assert cfg.security.soffice_timeout == defaults.soffice_timeout
+
+
+@test
+def unknown_security_key_raises_project_error():
+    toml = '[project]\nname = "x"\n[security]\nmax_xlsx_byes = 100\n'
+    with catch_exceptions() as caught:
+        load_project(toml)
+    assert len(caught) == 1
+    assert isinstance(caught[0], ProjectError)
+    assert 'Unknown [security] keys' in str(caught[0])
 
 
 @test

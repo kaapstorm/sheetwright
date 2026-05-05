@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 import tomli_w
 
+from sheetwright.exceptions import ProjectError
 from sheetwright.model.workbook import NamedRange
 from sheetwright.security import SecurityLimits
 
@@ -49,13 +50,7 @@ def dump_project(cfg: ProjectConfig) -> str:
         'build': {'calc_engine': cfg.calc_engine},
     }
     if cfg.security is not None:
-        doc['security'] = {
-            'max_xlsx_uncompressed_bytes': cfg.security.max_xlsx_uncompressed_bytes,
-            'max_xlsx_sheet_count': cfg.security.max_xlsx_sheet_count,
-            'max_xlsx_cells_per_sheet': cfg.security.max_xlsx_cells_per_sheet,
-            'max_xlsx_shared_strings': cfg.security.max_xlsx_shared_strings,
-            'soffice_timeout': cfg.security.soffice_timeout,
-        }
+        doc['security'] = dataclasses.asdict(cfg.security)
     return tomli_w.dumps(doc)
 
 
@@ -65,10 +60,13 @@ def load_project(text: str) -> ProjectConfig:
     if 'security' in data:
         sec = data['security']
         defaults = SecurityLimits.defaults()
-        security = dataclasses.replace(
-            defaults,
-            **{k: sec[k] for k in sec if hasattr(defaults, k)},
-        )
+        known = {f.name for f in dataclasses.fields(SecurityLimits)}
+        unknown = set(sec) - known
+        if unknown:
+            raise ProjectError(
+                f'Unknown [security] keys in sheetwright.toml: {sorted(unknown)}'
+            )
+        security = dataclasses.replace(defaults, **sec)
     return ProjectConfig(
         name=data['project']['name'],
         calc_engine=data.get('build', {}).get('calc_engine', 'libreoffice'),

@@ -7,23 +7,11 @@ from typing import Optional
 
 import click
 
-from sheetwright.security import OperatorLimits
-
-_operator_limits: Optional[OperatorLimits] = None
-
-
-def get_operator_limits() -> OperatorLimits:
-    """Return the process-wide operator limits (built once at CLI entry)."""
-    assert _operator_limits is not None, 'CLI not initialised'
-    return _operator_limits
-
 
 @click.group(context_settings={'help_option_names': ['-h', '--help']})
 @click.version_option(package_name='sheetwright')
 def main() -> None:
     """Work with spreadsheets from Claude Code."""
-    global _operator_limits
-    _operator_limits = OperatorLimits.from_environment()
 
 
 @main.command('init')
