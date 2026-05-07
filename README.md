@@ -4,7 +4,7 @@ A toolkit that lets [Claude Code](https://claude.com/claude-code) work with
 spreadsheets the way it works with code: text-source files, git, TDD,
 diffs, and review.
 
-`.xlsx` is treated as a build artefact compiled from text sources. You
+`.xlsx` is treated as a build artifact compiled from text sources. You
 write Markdown tables and YAML sidecars; sheetwright produces the
 workbook and runs [LibreOffice Calc](https://www.libreoffice.org/) in
 headless mode (the default, swappable calc engine) to evaluate every
