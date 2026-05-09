@@ -27,7 +27,11 @@ def safe_load_workbook(
     _check_zip(path, limits)
     wb = openpyxl.load_workbook(path, data_only=data_only, read_only=read_only)
     if read_only:
-        _stream_cell_count(wb, limits)
+        try:
+            _stream_cell_count(wb, limits)
+        except BaseException:
+            wb.close()
+            raise
     return wb
 
 

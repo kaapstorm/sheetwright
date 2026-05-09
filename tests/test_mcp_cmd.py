@@ -1,8 +1,8 @@
 import json
-import select
+import queue
 import subprocess
 import sys
-import time
+import threading
 
 from testsweet import test
 
@@ -30,14 +30,20 @@ def mcp_subcommand_help_describes_stdio():
 
 
 def _read_one_response(stream, timeout: float) -> str:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        ready, _, _ = select.select([stream], [], [], 0.1)
-        if ready:
-            line = stream.readline()
-            if line:
-                return line
-    raise TimeoutError('no MCP response within timeout')
+    q: queue.Queue = queue.Queue()
+
+    def _reader():
+        line = stream.readline()
+        q.put(line)
+
+    threading.Thread(target=_reader, daemon=True).start()
+    try:
+        line = q.get(timeout=timeout)
+    except queue.Empty:
+        raise TimeoutError('no MCP response within timeout') from None
+    if not line:
+        raise TimeoutError('MCP stream closed without a response')
+    return line
 
 
 @test
