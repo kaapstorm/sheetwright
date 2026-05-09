@@ -12,6 +12,8 @@ pull request, regression-test in CI, and edit alongside Claude Code.
 - [Getting started](getting-started.md) — install, scaffold a
   project, edit a sheet, build, and run your first test in about ten
   minutes.
+- [Windows setup primer](tutorials/windows-setup.md) — for readers
+  new to PowerShell, `winget`, and git on Windows.
 
 ## Reference
 
@@ -27,6 +29,8 @@ pull request, regression-test in CI, and edit alongside Claude Code.
 
 ## Tutorials
 
+- [Windows setup primer](tutorials/windows-setup.md) — WinGet,
+  LibreOffice, Sourcetree, and PowerShell basics.
 - [Greenfield project](tutorials/greenfield-project.md) — build a new
   model from scratch.
 - [Importing an existing workbook](tutorials/importing-existing.md) —

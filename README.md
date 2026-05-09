@@ -46,9 +46,15 @@ uv sync
 uv run sheetwright --help
 ```
 
-LibreOffice must be on `$PATH` for the default calc engine
-(Debian/Ubuntu: `apt install libreoffice`; macOS:
-`brew install --cask libreoffice`).
+LibreOffice must be on `PATH` for the default calc engine.
+
+- Debian/Ubuntu: `apt install libreoffice`
+- macOS: `brew install --cask libreoffice`
+- Windows (PowerShell):
+  `winget install --id TheDocumentFoundation.LibreOffice`
+
+Windows users new to the command line should start with the
+[Windows setup primer](docs/tutorials/windows-setup.md).
 
 ## Documentation
 
