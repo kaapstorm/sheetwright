@@ -133,7 +133,10 @@ def streaming_cell_count_passes_under_cap():
         _write_xlsx_with_cells(p, 100)
         limits = _limits(max_xlsx_cells_per_sheet=200)
         wb = safe_load_workbook(p, limits, read_only=True)
-        assert wb is not None
+        try:
+            assert wb is not None
+        finally:
+            wb.close()
 
 
 # ---------------------------------------------------------------------------

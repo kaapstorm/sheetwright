@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import tempfile
 from pathlib import Path
 
@@ -89,7 +88,7 @@ def non_existent_path_under_root_is_accepted():
         root = Path(td)
         # 'newdir' does not exist; the function must handle this gracefully.
         result = resolve_under(root, 'newdir/newfile.xlsx')
-        assert result == root / 'newdir' / 'newfile.xlsx'
+        assert result == root.resolve() / 'newdir' / 'newfile.xlsx'
         assert not result.exists()
 
 

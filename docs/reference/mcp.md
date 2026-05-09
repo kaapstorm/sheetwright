@@ -8,9 +8,15 @@ the client closes the connection.
 ## Wiring
 
 Most MCP clients launch `sheetwright mcp` as a subprocess and route
-MCP traffic over stdin/stdout. For Claude Desktop, add to
-`~/Library/Application Support/Claude/claude_desktop_config.json`
-(macOS) or the equivalent on your platform:
+MCP traffic over stdin/stdout. For Claude Desktop, edit the config
+file for your platform:
+
+- macOS:
+  `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+Add an entry like:
 
 ```json
 {
@@ -22,6 +28,10 @@ MCP traffic over stdin/stdout. For Claude Desktop, add to
   }
 }
 ```
+
+On Windows, use a full Windows path (and double the backslashes in
+JSON), for example
+`"C:\\Users\\you\\my-model"`.
 
 For a generic stdio MCP client:
 

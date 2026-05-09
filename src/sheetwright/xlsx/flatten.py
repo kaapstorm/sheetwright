@@ -17,7 +17,6 @@ import re
 from pathlib import Path
 from typing import Tuple
 
-import openpyxl
 from openpyxl.formula.tokenizer import Tokenizer
 
 from sheetwright.model.cell import Cell

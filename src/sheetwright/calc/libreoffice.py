@@ -51,7 +51,7 @@ class LibreOfficeEngine(CalcEngine):
                 '--nofirststartwizard',
                 '--nodefault',
                 '--calc',
-                f'-env:UserInstallation=file://{profile}',
+                f'-env:UserInstallation={profile.as_uri()}',
                 '--convert-to',
                 'xlsx',
                 '--outdir',
@@ -97,13 +97,16 @@ class LibreOfficeEngine(CalcEngine):
 
 def _read_calculated(xlsx_path: Path, limits: SecurityLimits) -> CalcResult:
     wb = safe_load_workbook(xlsx_path, limits, data_only=True, read_only=True)
-    out: CalcResult = {}
-    for ws in wb.worksheets:
-        sheet: Dict[str, CellValue] = {}
-        for row in ws.iter_rows():
-            for cell in row:
-                if cell.value is None:
-                    continue
-                sheet[cell.coordinate] = cast(CellValue, cell.value)
-        out[ws.title] = sheet
-    return out
+    try:
+        out: CalcResult = {}
+        for ws in wb.worksheets:
+            sheet: Dict[str, CellValue] = {}
+            for row in ws.iter_rows():
+                for cell in row:
+                    if cell.value is None:
+                        continue
+                    sheet[cell.coordinate] = cast(CellValue, cell.value)
+            out[ws.title] = sheet
+        return out
+    finally:
+        wb.close()

@@ -127,13 +127,13 @@ draw values from it); small sheets stay fully in `.md`.
 
 ### Version control
 
-| Versioned                                    | Ignored                                  |
-|----------------------------------------------|------------------------------------------|
-| `sheetwright.toml`, `workbook.toml`         | `build/` (built xlsx)                    |
-| `sheets/*.md`, `sheets/*.yaml`               | `.sheetwright/` (built SQLite, caches)  |
-| `data/*.csv`, `data/_schema.sql`             |                                          |
-| `tests/*.py`                                 |                                          |
-| `imports/*.xlsx` (opt-in via `--archive`)    |                                          |
+| Versioned                                 | Ignored                                |
+|-------------------------------------------|----------------------------------------|
+| `sheetwright.toml`, `workbook.toml`       | `build/` (built xlsx)                  |
+| `sheets/*.md`, `sheets/*.yaml`            | `.sheetwright/` (built SQLite, caches) |
+| `data/*.csv`, `data/_schema.sql`          |                                        |
+| `tests/*.py`                              |                                        |
+| `imports/*.xlsx` (opt-in via `--archive`) |                                        |
 
 ## Workflows
 

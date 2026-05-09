@@ -1,7 +1,7 @@
 """Helpers that build small openpyxl workbooks for round-trip tests.
 
-These are not pytest-unmagic fixtures — they are plain helpers callable
-from tests. We keep them in one place so test setup stays consistent.
+These are helpers callable from tests. We keep them in one place so test
+setup stays consistent.
 """
 
 from __future__ import annotations

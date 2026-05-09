@@ -23,6 +23,19 @@ brew install --cask libreoffice
 brew install python@3.11
 ```
 
+On Windows (PowerShell, using
+[WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/)):
+
+```powershell
+winget install --id TheDocumentFoundation.LibreOffice
+winget install --id Python.Python.3.11
+winget install --id Git.Git
+```
+
+New to PowerShell or `winget`? Start with the [Windows setup
+primer](tutorials/windows-setup.md), which covers `winget`,
+LibreOffice, Sourcetree, and the PowerShell commands you'll need.
+
 ## Install
 
 sheetwright is built on [`uv`](https://docs.astral.sh/uv/). The
@@ -40,6 +53,21 @@ If you prefer pip:
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install sheetwright
+```
+
+On Windows:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install sheetwright
+```
+
+If PowerShell blocks `Activate.ps1` with an execution-policy error,
+allow signed local scripts for your user once with:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
 Confirm:

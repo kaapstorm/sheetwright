@@ -1,6 +1,4 @@
-"""Test-time helpers exposed to user pytest tests."""
-
-from __future__ import annotations
+"""Test-time helpers exposed to user testsweet tests."""
 
 from sheetwright.testing.addresses import parse_address
 from sheetwright.testing.model import Model

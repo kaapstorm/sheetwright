@@ -8,7 +8,7 @@ from unittest import mock
 
 from testsweet import catch_exceptions, test
 
-from sheetwright.bulk import build_bulk_cache, table_name_for
+from sheetwright.bulk import build_bulk_cache
 from sheetwright.exceptions import BulkInvalidIdentifierError
 
 

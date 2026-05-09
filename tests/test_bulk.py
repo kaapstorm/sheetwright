@@ -36,9 +36,12 @@ def build_loads_csv_into_sqlite():
         assert db_path.exists()
 
         conn = sqlite3.connect(db_path)
-        rows = conn.execute(
-            'SELECT year, value FROM series ORDER BY year'
-        ).fetchall()
+        try:
+            rows = conn.execute(
+                'SELECT year, value FROM series ORDER BY year'
+            ).fetchall()
+        finally:
+            conn.close()
         assert rows == [
             ('2020', '1.0'),
             ('2021', '2.0'),

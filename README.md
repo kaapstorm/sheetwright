@@ -4,7 +4,7 @@ A toolkit that lets [Claude Code](https://claude.com/claude-code) work with
 spreadsheets the way it works with code: text-source files, git, TDD,
 diffs, and review.
 
-`.xlsx` is treated as a build artefact compiled from text sources. You
+`.xlsx` is treated as a build artifact compiled from text sources. You
 write Markdown tables and YAML sidecars; sheetwright produces the
 workbook and runs [LibreOffice Calc](https://www.libreoffice.org/) in
 headless mode (the default, swappable calc engine) to evaluate every
@@ -46,9 +46,15 @@ uv sync
 uv run sheetwright --help
 ```
 
-LibreOffice must be on `$PATH` for the default calc engine
-(Debian/Ubuntu: `apt install libreoffice`; macOS:
-`brew install --cask libreoffice`).
+LibreOffice must be on `PATH` for the default calc engine.
+
+- Debian/Ubuntu: `apt install libreoffice`
+- macOS: `brew install --cask libreoffice`
+- Windows (PowerShell):
+  `winget install --id TheDocumentFoundation.LibreOffice`
+
+Windows users new to the command line should start with the
+[Windows setup primer](docs/tutorials/windows-setup.md).
 
 ## Documentation
 
