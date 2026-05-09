@@ -51,7 +51,7 @@ class LibreOfficeEngine(CalcEngine):
                 '--nofirststartwizard',
                 '--nodefault',
                 '--calc',
-                f'-env:UserInstallation=file://{profile}',
+                f'-env:UserInstallation={profile.as_uri()}',
                 '--convert-to',
                 'xlsx',
                 '--outdir',
