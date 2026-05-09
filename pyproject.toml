@@ -19,6 +19,12 @@ dependencies = [
 [project.scripts]
 sheetwright = "sheetwright.cli:main"
 
+[project.urls]
+Homepage = "https://github.com/kaapstorm/sheetwright"
+Source = "https://github.com/kaapstorm/sheetwright"
+Documentation = "https://github.com/kaapstorm/sheetwright/blob/main/docs/README.md"
+Changelog = "https://github.com/kaapstorm/sheetwright/blob/main/CHANGELOG.md"
+
 [dependency-groups]
 dev = [
     "mypy>=1.20.2",
