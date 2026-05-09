@@ -37,7 +37,7 @@ build/
 
 def run(path: str) -> None:
     project = Path(path).resolve()
-    if project.exists() and any(project.iterdir()):
+    if not _project_is_empty(project):
         raise click.ClickException(f'{project} is not empty.')
 
     project.mkdir(parents=True, exist_ok=True)
@@ -50,3 +50,11 @@ def run(path: str) -> None:
     (project / '.gitignore').write_text(DEFAULT_GITIGNORE)
 
     click.echo(f'Initialised sheetwright project at {project}')
+
+
+def _project_is_empty(project):
+    expected_files = ('.git', '.venv', 'pyproject.toml', 'uv.lock')
+    return (
+        not project.exists()
+        or any(f for f in project.iterdir() if f not in expected_files)
+    )

@@ -42,7 +42,7 @@ sheetwright is built on [`uv`](https://docs.astral.sh/uv/). The
 quickest path for a fresh project:
 
 ```bash
-uv init my-model
+uv init --bare my-model
 cd my-model
 uv add sheetwright
 ```
@@ -50,6 +50,8 @@ uv add sheetwright
 If you prefer pip:
 
 ```bash
+mkdir my-model
+cd my-model
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install sheetwright
@@ -58,6 +60,8 @@ pip install sheetwright
 On Windows:
 
 ```powershell
+mkdir my-model
+cd my-model
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install sheetwright
@@ -84,7 +88,7 @@ $ uv run sheetwright init .
 Initialised sheetwright project at /home/you/my-model
 ```
 
-This creates:
+`sheetwright init .` creates:
 
 ```
 my-model/
