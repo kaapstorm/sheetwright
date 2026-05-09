@@ -74,7 +74,7 @@ Confirm:
 
 ```bash
 $ uv run sheetwright --version
-sheetwright, version 1.0.0
+sheetwright, version 0.1.0
 ```
 
 ## Scaffold a project

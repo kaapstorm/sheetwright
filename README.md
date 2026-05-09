@@ -16,10 +16,6 @@ sheetwright also ships an MCP (Model Context Protocol) server, so
 Claude Code (or any MCP client) can drive a project end-to-end through
 typed tools that mirror the CLI.
 
-## Status
-
-v1.0.0. See [`docs/`](docs/) for the manual.
-
 ## Quick reference
 
 ```bash
@@ -58,8 +54,6 @@ Windows users new to the command line should start with the
 
 ## Documentation
 
-The manual lives under [`docs/`](docs/):
-
 - [Getting started](docs/getting-started.md) — install through first
   test in about ten minutes.
 - [CLI reference](docs/reference/cli.md) — every command and flag.
@@ -76,11 +70,6 @@ The manual lives under [`docs/`](docs/):
   [TDD](docs/tutorials/tdd-workflow.md),
   [snapshots](docs/tutorials/snapshots.md),
   [escape hatch](docs/tutorials/escape-hatch.md).
-
-## Design
-
-The design rationale is in
-[`claude/specs/2026-04-25_sheetwright-design.md`](claude/specs/2026-04-25_sheetwright-design.md).
 
 ## License
 
