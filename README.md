@@ -50,26 +50,26 @@ LibreOffice must be on `PATH` for the default calc engine.
   `winget install --id TheDocumentFoundation.LibreOffice`
 
 Windows users new to the command line should start with the
-[Windows setup primer](docs/tutorials/windows-setup.md).
+[Windows setup primer](https://github.com/kaapstorm/sheetwright/blob/main/docs/tutorials/windows-setup.md).
 
 ## Documentation
 
-- [Getting started](docs/getting-started.md) — install through first
+- [Getting started](https://github.com/kaapstorm/sheetwright/blob/main/docs/getting-started.md) — install through first
   test in about ten minutes.
-- [CLI reference](docs/reference/cli.md) — every command and flag.
-- [Source format](docs/reference/source-format.md) — on-disk layout
+- [CLI reference](https://github.com/kaapstorm/sheetwright/blob/main/docs/reference/cli.md) — every command and flag.
+- [Source format](https://github.com/kaapstorm/sheetwright/blob/main/docs/reference/source-format.md) — on-disk layout
   and the Markdown / YAML / TOML semantics.
-- [Testing reference](docs/reference/testing.md) — the
+- [Testing reference](https://github.com/kaapstorm/sheetwright/blob/main/docs/reference/testing.md) — the
   `sheetwright.testing.Model` API and testsweet patterns.
-- [MCP reference](docs/reference/mcp.md) — typed tools, return
+- [MCP reference](https://github.com/kaapstorm/sheetwright/blob/main/docs/reference/mcp.md) — typed tools, return
   shapes, error codes.
-- [Calc engine reference](docs/reference/calc-engine.md) — the
+- [Calc engine reference](https://github.com/kaapstorm/sheetwright/blob/main/docs/reference/calc-engine.md) — the
   plugin interface and the LibreOffice backend.
-- Tutorials: [greenfield](docs/tutorials/greenfield-project.md),
-  [importing](docs/tutorials/importing-existing.md),
-  [TDD](docs/tutorials/tdd-workflow.md),
-  [snapshots](docs/tutorials/snapshots.md),
-  [escape hatch](docs/tutorials/escape-hatch.md).
+- Tutorials: [greenfield](https://github.com/kaapstorm/sheetwright/blob/main/docs/tutorials/greenfield-project.md),
+  [importing](https://github.com/kaapstorm/sheetwright/blob/main/docs/tutorials/importing-existing.md),
+  [TDD](https://github.com/kaapstorm/sheetwright/blob/main/docs/tutorials/tdd-workflow.md),
+  [snapshots](https://github.com/kaapstorm/sheetwright/blob/main/docs/tutorials/snapshots.md),
+  [escape hatch](https://github.com/kaapstorm/sheetwright/blob/main/docs/tutorials/escape-hatch.md).
 
 ## License
 
