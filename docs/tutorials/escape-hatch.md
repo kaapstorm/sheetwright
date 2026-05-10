@@ -39,11 +39,11 @@ formulas, formats), then a prompt:
 Apply changes? [m]erge / [o]verwrite / [r]eject:
 ```
 
-| Choice | Effect |
-| --- | --- |
-| `m` (merge) | Apply the diff to source. Existing formulas/formats unchanged unless the xlsx changed them. |
-| `o` (overwrite) | Same as merge in current implementation; the `m`/`o` distinction is reserved for future granularity. |
-| `r` (reject, default) | Source unchanged. The xlsx still differs from what source would produce. |
+| Choice                | Effect                                                                                               |
+|-----------------------|------------------------------------------------------------------------------------------------------|
+| `m` (merge)           | Apply the diff to source. Existing formulas/formats unchanged unless the xlsx changed them.          |
+| `o` (overwrite)       | Same as merge in current implementation; the `m`/`o` distinction is reserved for future granularity. |
+| `r` (reject, default) | Source unchanged. The xlsx still differs from what source would produce.                             |
 
 If you reject, the warning will keep firing on subsequent commands
 until you either re-run import and merge, or rebuild from source

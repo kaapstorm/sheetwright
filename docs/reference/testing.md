@@ -113,16 +113,20 @@ than values.
 ## testsweet patterns
 
 sheetwright uses [testsweet](https://github.com/kaapstorm/testsweet)
-for tests, which differs from pytest in three ways relevant here:
+for tests, which differs from pytest in a few ways relevant here:
 
-- `@test` is the function decorator (no implicit "function named
+- `@test` is an explicit decorator (no implicit "function named
   `test_*`" rule).
-- Fixtures are imported and called explicitly (no parameter-name
-  injection).
+- There is no fixture system. Use plain context managers for
+  function-style tests, or implement the context-manager protocol on
+  a class for class-style tests.
 - `catch_exceptions` is the idiom for asserting that something
   raises.
+- `@xfail` is **strict**: an unexpected pass fails the run.
 
 ### `@test`
+
+Mark a function as a test:
 
 ```python
 from testsweet import test
@@ -135,11 +139,32 @@ def revenue_grows_with_assumption():
     assert math.isclose(model.get('Outputs!B1'), 1_050_000, rel_tol=1e-9)
 ```
 
+Or mark a class — every public method (not starting with `_`) is run
+as a test:
+
+```python
+@test
+class RevenueModel:
+    def baseline(self):
+        model = Model.open('.')
+        assert math.isclose(
+            model.get('Outputs!B1'), 1_040_000, rel_tol=1e-9,
+        )
+
+    def grows_with_assumption(self):
+        model = Model.open('.')
+        model.set('growth_rate', 0.05)
+        assert math.isclose(
+            model.get('Outputs!B1'), 1_050_000, rel_tol=1e-9,
+        )
+```
+
 ### `@params`
 
 Run the same test body across multiple parameter sets. Stack with
 `@test` to register the function for discovery; each tuple in the
-iterable is unpacked as positional arguments:
+iterable is unpacked as positional arguments. The iterable is
+materialized eagerly at decoration time:
 
 ```python
 from testsweet import params, test
@@ -157,8 +182,8 @@ def revenue_scales_linearly(rate, expected):
     assert math.isclose(model.get('Outputs!B1'), expected, rel_tol=1e-9)
 ```
 
-Use `@params_lazy` instead when the iterable is expensive to
-materialize and you want it consumed at run time.
+Use `@params_lazy` instead when materializing the iterable is
+expensive or has side effects you want deferred until run time.
 
 ### `catch_exceptions`
 
@@ -175,56 +200,186 @@ def negative_growth_rejected():
     assert excs and isinstance(excs[0], ValueError)
 ```
 
+`catch_warnings` is the warning-capture analogue:
+
+```python
+from testsweet import catch_warnings
+
+with catch_warnings() as warns:
+    ...
+assert any(isinstance(w, DeprecationWarning) for w in warns)
+```
+
 ### `@skip`
+
+`@skip` accepts `reason=` and `condition=` keyword arguments. Bare
+`@skip` always skips:
 
 ```python
 from testsweet import skip, test
 
 
 @test
-@skip('pending soffice 7.6 in CI')
+@skip(reason='pending soffice 7.6 in CI')
 def conditional_format_renders():
     ...
+
+
+@test
+@skip(condition=sys.platform == 'win32', reason='posix-only')
+def uses_named_pipe():
+    ...
+```
+
+`condition=` accepts a bool or a zero-arg callable (the callable is
+evaluated at run time).
+
+### `@xfail`
+
+Mark a test as expected to fail. If it raises, the runner reports
+`xfailed`; if it unexpectedly passes, the runner reports `XPASSED`
+and the run fails. Either remove the marker (the bug is fixed) or
+fix the test.
+
+```python
+from testsweet import test, xfail
+
+
+@test
+@xfail(reason='regression in upstream calc, see #123')
+def lookup_handles_blank_keys():
+    ...
+```
+
+`@xfail` accepts the same `reason=` and `condition=` kwargs as
+`@skip`. When both decorators are applied, `@skip` wins.
+
+### `@tag`
+
+Attach free-form tags to filter tests at the command line. Multiple
+`@tag` decorators stack (set-union); a class-level `@tag` propagates
+to every method on the class.
+
+```python
+from testsweet import tag, test
+
+
+@test
+@tag('slow')
+@tag('libreoffice')
+def full_recalc_of_quarterly_model():
+    ...
+```
+
+Filter at run time with `-t` / `--tag` and `-T` / `--exclude-tag`
+(both repeatable):
+
+```bash
+uv run python -m testsweet -t slow -T flaky tests/
 ```
 
 ### Fixtures
 
-Define fixtures with `@unmagic.fixture`, yield once, and apply with
-`@use(fixture)` or the shorthand `@<fixture>`. Don't put them in
-`conftest.py` — keep them in a regular module and import them where
-used.
+testsweet has no fixture system of its own. For function-style
+tests, use any context manager:
 
 ```python
-from unmagic import fixture, use
+from contextlib import contextmanager
+
 from testsweet import test
 
 from sheetwright.testing import Model
 
 
-@fixture
-def model():
+@contextmanager
+def fresh_model():
     m = Model.open('.')
-    yield m
+    try:
+        yield m
+    finally:
+        pass  # nothing to tear down; placeholder for resources
 
 
 @test
-@use(model)
 def revenue_grows():
-    m = model()
-    m.set('growth_rate', 0.05)
-    assert math.isclose(m.get('Outputs!B1'), 1_050_000, rel_tol=1e-9)
+    with fresh_model() as m:
+        m.set('growth_rate', 0.05)
+        assert math.isclose(
+            m.get('Outputs!B1'), 1_050_000, rel_tol=1e-9,
+        )
 ```
 
-For expensive setup (a recalc-heavy baseline workbook), use
-`scope='module'`:
+For shared per-class state (the equivalent of unittest's
+`setUpClass` / `tearDownClass`), implement the context-manager
+protocol on the class. The runner enters it for the duration of the
+class's method calls — handy for paying the LibreOffice cost once on
+a baseline workbook:
 
 ```python
-@fixture(scope='module')
-def warm_model():
-    m = Model.open('.')
-    m.recalc()              # pay the LibreOffice cost once
-    yield m
+from contextlib import AbstractContextManager
+
+from testsweet import test
+
+from sheetwright.testing import Model
+
+
+@test
+class WarmModel(AbstractContextManager):
+    def __enter__(self):
+        self.model = Model.open('.')
+        self.model.recalc()  # pay the LibreOffice cost once
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return None
+
+    def baseline_revenue(self):
+        assert math.isclose(
+            self.model.get('Outputs!B1'), 1_040_000, rel_tol=1e-9,
+        )
+
+    def named_range_resolves(self):
+        assert self.model.workbook.named_ranges[0].name == 'growth_rate'
 ```
+
+For per-method setup/teardown (the equivalent of `setUp` /
+`tearDown`), define `__test_context__` on the class. The runner
+enters it once per test method, inside the class's
+`__enter__` / `__exit__` scope:
+
+```python
+from contextlib import contextmanager
+
+
+@test
+class RevenueScenarios(AbstractContextManager):
+    def __enter__(self):
+        self.model = Model.open('.')
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return None
+
+    @contextmanager
+    def __test_context__(self):
+        # reset assumptions between methods
+        self.model.set('growth_rate', 0.04)
+        yield
+
+    def baseline(self):
+        assert math.isclose(
+            self.model.get('Outputs!B1'), 1_040_000, rel_tol=1e-9,
+        )
+
+    def aggressive_growth(self):
+        self.model.set('growth_rate', 0.10)
+        assert math.isclose(
+            self.model.get('Outputs!B1'), 1_100_000, rel_tol=1e-9,
+        )
+```
+
+Subclasses can chain a parent's `__test_context__` via
+`super().__test_context__()`.
 
 ## A complete example
 
@@ -268,10 +423,29 @@ Run with:
 sheetwright test
 ```
 
-Or, to use testsweet's own discovery:
+Or invoke testsweet directly:
 
 ```bash
-uv run python -m testsweet tests/
+uv run python -m testsweet tests/        # run a directory
+uv run python -m testsweet               # use configured discovery
+uv run python -m testsweet tests/test_revenue.py::revenue_scales_with_growth_rate
+```
+
+The runner prints one line per test and exits non-zero if any test
+fails. Outcomes are returned from `testsweet.run()` as one of
+`Passed`, `Failed`, `Errored`, `Skipped`, `XFailed`, or `XPassed`
+— see the [testsweet reference](https://github.com/kaapstorm/testsweet/blob/main/docs/reference.md)
+for the full sum type.
+
+## Discovery configuration
+
+Configure discovery in `pyproject.toml`:
+
+```toml
+[tool.testsweet.discovery]
+include_paths = ['tests']
+exclude_paths = ['tests/fixtures']
+test_files = ['test_*.py', '*_test.py']
 ```
 
 ## Performance notes
